@@ -14,16 +14,16 @@ function FIFO(ps) {
 
     ps.sort((a, b) => a.chegada - b.chegada);   // ordena por tempo de chegada
 
-    while(i < ps.length()) {      // suponha que o menor tempo de chegada sempre é 0
+    while(i < ps.length) {      // suponha que o menor tempo de chegada sempre é 0
+        
+        if (time < ps[i].chegada) time = ps[i].chegada;
+
+        ps[i].espera = time - ps[i].chegada;
+        ps[i].turnaround = ps[i].espera + ps[i].execucao
         time += ps[i].execucao;
-        ps[i].turnaround += ps[i].execucao;
-        j += i + 1;
-        while (j < ps.length() && ps[j].chegada <= time) {
-            ps[j].espera += time - ps[j].chegada; // computando a espera
-            j++;
-        }
-    }
 
         i++;
+    }
+        
 }
 

@@ -1,9 +1,19 @@
 div {
     font-size: 0;
+
 }
 
 img {
     image-rendering: pixelated;
     width: auto;
     height: 60px;
+}
+
+#gantt {
+    
+    overflow: scroll;
+    white-space: nowrap;
+    width: 20rem;
+    height: 10rem;
+    
 }
