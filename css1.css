@@ -1,0 +1,9 @@
+div {
+    font-size: 0;
+}
+
+img {
+    image-rendering: pixelated;
+    width: auto;
+    height: 60px;
+}
