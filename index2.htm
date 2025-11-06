@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulador de Escalonamento</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Simulador de Escalonamento</h1>
+
+  <div class="controls">
+    <label for="algoritmo">Algoritmo:</label>
+    <select id="algoritmo">
+      <option value="FIFO">FIFO (FCFS)</option>
+      <option value="SJF">SJF (Shortest Job First)</option>
+    </select>
+    <button id="executar">Executar Simulação</button>
+  </div>
+
+  <form id="formProcesso">
+    <label>ID:</label> <input id="id" required>
+    <label>Chegada:</label> <input id="chegada" type="number" required>
+    <label>Tempo de execução:</label> <input id="execucao" type="number" required>
+    <label>Prioridade:</label> <!--<input id="prioridade" type="number" value="1">-->
+    <select name="prioridade" id="prioridade">
+        <option value=1>1</option>
+        <option value=2>2</option>
+        <option value=3>3</option>
+        <option value=4>4</option>
+        <option value=5>5</option>
+    </select>
+    <button type="submit">Adicionar Processo</button>
+  </form>
+
+  <table id="tabelaProcessos">
+    <thead>
+      <tr><th>ID</th><th>Chegada</th><th>Execução</th><th>Prioridade</th><th>Ações</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div id="gantt"></div>
+
+  <script src="simulador.js"></script>
+  <script src="gantt.js"></script>
+  <script>
+    const tabela = document.querySelector("#tabelaProcessos tbody");
+    const form = document.getElementById("formProcesso");
+    const seletorAlg = document.getElementById("algoritmo");
+    const containerGantt = document.getElementById("gantt");
+
+    let processos = [];
+
+    function atualizarTabela() {
+      tabela.innerHTML = "";
+      processos.forEach((p, idx) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${p.id}</td>
+          <td>${p.chegada}</td>
+          <td>${p.execucao}</td>
+          <td>${p.prioridade}</td>
+          <td><button data-i="${idx}" class="remover">Remover</button></td>
+        `;
+        tabela.appendChild(tr);
+      });
+
+      document.querySelectorAll(".remover").forEach(btn => {
+        btn.addEventListener("click", e => {
+          const i = e.target.dataset.i;
+          processos.splice(i, 1);
+          atualizarTabela();
+        });
+      });
+    }
+
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      const id = document.getElementById("id").value;
+      const chegada = parseInt(document.getElementById("chegada").value);
+      const execucao = parseInt(document.getElementById("execucao").value);
+      const prioridade = parseInt(document.getElementById("prioridade").value);
+      processos.push(new Processo(id, chegada, execucao, prioridade));
+      atualizarTabela();
+      form.reset();
+    });
+
+    document.getElementById("executar").addEventListener("click", () => {
+      if (processos.length === 0) {
+        alert("Adicione pelo menos um processo.");
+        return;
+      }
+
+      const algoritmo = seletorAlg.value;
+
+      // ✅ Cria cópias "limpas" dos processos (corrige bug de reexecução)
+      const processosCopia = processos.map(p =>
+        new Processo(p.id, p.chegada, p.execucao, p.prioridade, p.deadline)
+      );
+
+      // ✅ Novo simulador independente
+      const sim = new Simulador(processosCopia, algoritmo);
+
+      // ✅ Executa de forma síncrona e mostra resultados
+      const resultado = sim.executar();
+
+      containerGantt.innerHTML = "";
+      animarGantt(resultado.gantt, containerGantt, 200);
+
+      console.log(`\n=== ${algoritmo} ===`);
+      console.table(resultado.finalizados);
+    });
+  </script>
+</body>
+</html>

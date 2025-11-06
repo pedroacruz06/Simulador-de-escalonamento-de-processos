@@ -1,0 +1,91 @@
+/* style.css */
+
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background: #f8f9fa;
+}
+
+h1 {
+  color: #333;
+}
+
+form, .controls {
+  margin-bottom: 15px;
+}
+
+label {
+  margin-right: 5px;
+}
+
+input {
+  width: 60px;
+  margin-right: 5px;
+  padding: 3px;
+}
+
+button {
+  padding: 5px 10px;
+  margin: 3px;
+  border: none;
+  background: #007bff;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #0056b3;
+}
+
+select {
+  padding: 5px;
+  border-radius: 4px;
+  margin-right: 8px;
+}
+
+table {
+  border-collapse: collapse;
+  margin-top: 15px;
+  background: white;
+}
+
+td, th {
+  border: 1px solid #ccc;
+  padding: 5px 8px;
+  text-align: center;
+}
+
+/* ======= GANTT ======= */
+
+#gantt {
+  margin-top: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.linha-processo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.label-processo {
+  width: 60px;
+  text-align: right;
+  font-weight: bold;
+  color: #333;
+}
+
+.linha-tempo {
+  display: flex;
+  gap: 2px;
+}
+
+.tick {
+  width: 25px;
+  height: 25px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
