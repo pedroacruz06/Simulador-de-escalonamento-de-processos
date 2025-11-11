@@ -5,6 +5,8 @@ const ESTADO_NAO_CHEGOU = 0;
 const ESTADO_EXECUCAO = 1;
 const ESTADO_ESPERA = 2;
 const ESTADO_TERMINOU = 3;
+const ESTADO_SOBRECARGA =4;
+
 
 // ----------------------------
 // Classe Processo
@@ -63,6 +65,9 @@ class Simulador {
       this.prontos.sort((a, b) => a.chegada - b.chegada);
     } else if (this.algoritmo === "SJF") {
       this.prontos.sort((a, b) => a.execucao - b.execucao);
+      
+    } else if(this.algoritmo === "RR"){
+      
     }
     return this.prontos[0];
   }
@@ -135,3 +140,4 @@ window.ESTADO_NAO_CHEGOU = ESTADO_NAO_CHEGOU;
 window.ESTADO_EXECUCAO = ESTADO_EXECUCAO;
 window.ESTADO_ESPERA = ESTADO_ESPERA;
 window.ESTADO_TERMINOU = ESTADO_TERMINOU;
+window.ESTADO_SOBRECARGA = ESTADO_SOBRECARGA
