@@ -10,13 +10,14 @@ const ESTADO_TERMINOU = 3;
 // Classe Processo
 // ----------------------------
 class Processo {
-  constructor(id, chegada, execucao, prioridade = 1, deadline = Infinity) {
+  constructor(id, chegada, execucao, prioridade = null, deadline = null, tamanho = null) {
     this.id = id;
     this.chegada = chegada;
     this.execucao = execucao;
     this.restante = execucao;
     this.prioridade = prioridade;
     this.deadline = deadline;
+    this.tamanho = tamanho;
 
     this.inicio = null;
     this.termino = null;
@@ -29,13 +30,15 @@ class Processo {
 // Classe Simulador
 // ----------------------------
 class Simulador {
-  constructor(processos, algoritmo = "FIFO", quantum = 2, sobrecarga = 1) {
+  constructor(processos, algoritmo = "FIFO", modoMemoria = false, params = {}) {
     this.tempo = 0;
     this.processosOriginais = processos.slice(); // para inicializar Gantt
     this.processos = processos.slice(); // cópia de trabalho
     this.algoritmo = algoritmo;
-    this.quantum = quantum;
-    this.sobrecarga = sobrecarga;
+    this.modoMemoria = modoMemoria;
+    this.quantum = params.quantum ?? 2;
+    this.sobrecarga_contexto = params.sobrecarga ?? 1;
+    this.custo_disco = params.custoDisco ?? 1;
 
     this.prontos = [];
     this.finalizados = [];
@@ -119,6 +122,13 @@ class Simulador {
   }
 
   executar() {
+    console.log("Iniciando simulação:");
+    console.log("Algoritmo:", this.algoritmo);
+    console.log("Quantum:", this.quantum);
+    console.log("Sobrecarga de contexto:", this.sobrecarga_contexto);
+    console.log("Custo de disco:", this.custo_disco);
+    console.log("Memória virtual:", this.modoMemoria);
+
     while (!this.finalizou()) {
       this.tick();
     }

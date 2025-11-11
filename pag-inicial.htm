@@ -23,6 +23,27 @@
     Ativar modo de Memória Virtual
   </label>
 
+  <div class="parametros">
+    <h3>Parâmetros de Simulação</h3>
+
+    <div class="campo-parametro">
+      <label for="quantum">Quantum (u.t.):</label>
+      <input type="number" id="quantum" min="1" value="2">
+    </div>
+
+    <div class="campo-parametro">
+      <label for="sobrecarga">Sobrecarga de Contexto (u.t.):</label>
+      <input type="number" id="sobrecarga" min="0" value="1">
+    </div>
+
+    <div class="campo-parametro">
+      <label for="custo-disco">Custo de Disco (u.t.):</label>
+      <input type="number" id="custo-disco" min="0" value="1">
+    </div>
+  </div>
+
+  
+
   <button id="executar">Executar Simulação</button>
 </div>
 
@@ -62,6 +83,9 @@
   const cabecalho = document.querySelector("#tabelaProcessos thead tr");
   const form = document.getElementById("formProcesso");
   const seletorAlg = document.getElementById("algoritmo");
+  const campoQuantum = document.getElementById("quantum");
+  const campoSobrecarga = document.getElementById("sobrecarga");
+  const campoCustoDisco = document.getElementById("custo-disco");
   const toggleMemoria = document.getElementById("toggle-memoria");
   const campoDeadline = document.getElementById("campo-deadline");
   const campoMemoria = document.getElementById("campo-memoria");
@@ -92,6 +116,21 @@
     if (modoMemoria) campoMemoria.classList.remove("oculto");
 
     atualizarTabela();
+
+     // Controle de parâmetros
+    const preemptivo = (algoritmo === "RR" || algoritmo === "EDF" || algoritmo === "CFS");
+    const modoMemoriaAtivo = modoMemoria;
+
+    // Campos individuais
+    campoQuantum.parentElement.style.display = preemptivo ? "flex" : "none";
+    campoSobrecarga.parentElement.style.display = preemptivo ? "flex" : "none";
+    campoCustoDisco.parentElement.style.display = modoMemoriaAtivo ? "flex" : "none";
+
+    // Caixa completa
+    const boxParametros = document.querySelector(".parametros");
+    const algumParametroVisivel = preemptivo || modoMemoriaAtivo;
+
+    boxParametros.style.display = algumParametroVisivel ? "block" : "none";
   }
 
   seletorAlg.addEventListener("change", atualizarCampos);
@@ -227,8 +266,17 @@
       if (modoMemoria) copia.tamanho = p.tamanho;
       return copia;
     });
+    // Lê os parâmetros globais
+    const quantum = parseInt(campoQuantum.value) || 2;
+    const sobrecarga = parseInt(campoSobrecarga.value) || 1;
+    const custoDisco = parseInt(campoCustoDisco.value) || 1;
 
-    const sim = new Simulador(processosCopia, algoritmo, modoMemoria);
+    // Cria simulador com parâmetros
+    const sim = new Simulador(processosCopia, algoritmo, modoMemoria, {
+      quantum,
+      sobrecarga,
+      custoDisco
+    });
     const resultado = sim.executar();
 
     containerGantt.innerHTML = "";
