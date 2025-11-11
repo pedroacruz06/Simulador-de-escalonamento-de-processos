@@ -1,5 +1,3 @@
-/* style.css */
-
 body {
   font-family: Arial, sans-serif;
   padding: 20px;
@@ -54,6 +52,24 @@ td, th {
   border: 1px solid #ccc;
   padding: 5px 8px;
   text-align: center;
+}
+
+.toggle-memoria {
+  margin-left: 15px;
+  font-weight: bold;
+}
+
+.toggle-memoria input {
+  transform: scale(1.2);
+  margin-right: 5px;
+}
+
+.oculto {
+  display: none;
+}
+
+.campo-especial {
+  margin-left: 10px;
 }
 
 /* ======= GANTT ======= */
