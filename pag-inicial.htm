@@ -60,8 +60,8 @@
       <input id="deadline" type="number" min="0" value="0">
     </span>
     <span id="campo-memoria" class="campo-especial oculto">
-      <label>Tamanho (KB):</label>
-      <input id="tamanho" type="number" min="0" max="40" value="0">
+      <label>Tamanho (página):</label>
+      <input id="tamanho" type="number" min="0" max="10" value="0">
     </span>
 
     <button type="submit">Adicionar Processo</button>
@@ -142,7 +142,7 @@
     const modoMemoria = toggleMemoria.checked;
 
     let cab = ["ID", "Chegada", "Execução"];
-    if (modoMemoria) cab.push("Tamanho (KB)");
+    if (modoMemoria) cab.push("Tamanho (página)");
     if (algoritmo === "EDF" || algoritmo === "CFS") cab.push("Deadline");
     if (algoritmo === "CFS") cab.push("Prioridade");
     cab.push("Ações");
