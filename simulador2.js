@@ -5,8 +5,7 @@ const ESTADO_NAO_CHEGOU = 0;
 const ESTADO_EXECUCAO = 1;
 const ESTADO_ESPERA = 2;
 const ESTADO_TERMINOU = 3;
-const ESTADO_SOBRECARGA =4;
-
+const ESTADO_SOBRECARGA = 4;
 
 // ----------------------------
 // Classe Processo
@@ -19,7 +18,12 @@ class Processo {
     this.restante = execucao;
     this.prioridade = prioridade;
     this.deadline = deadline;
-
+    
+    // --- NOVO PARA EDF ---
+    // O deadline absoluto é o momento no tempo cronológico que ele deve terminar
+    this.deadlineAbsoluto = chegada + deadline;
+    this.estorouDeadline = false;
+    
     this.inicio = null;
     this.termino = null;
     this.espera = 0;
@@ -27,13 +31,11 @@ class Processo {
   }
 }
 
-
-
 // ----------------------------
-// Classe Simulador 
+// Classe Simulador
 // ----------------------------
 class Simulador {
-  constructor(processos, algoritmo = "FIFO", quantum = 2, sobrecarga = 1) {
+  constructor(processos, algoritmo = "FIFO", quantum = 3, sobrecarga = 1) {
     this.tempo = 0;
     this.processosOriginais = processos.slice();
     this.processos = processos.slice();
@@ -48,8 +50,6 @@ class Simulador {
     this.tempoQuantum = 0;
     this.tempoSobrecargaRestante = 0;
 
-    // --- NOVO ---
-    // Armazena a referência do processo que está sofrendo a preempção
     this.processoEmSobrecarga = null;
 
     // Inicializa o Gantt
@@ -68,7 +68,7 @@ class Simulador {
     this.processos = this.processos.filter(p => p.chegada > this.tempo);
   }
 
-  // (Não mudou)
+  // --- MODIFICADO: Ordenação EDF ---
   escolherProcesso() {
     if (this.prontos.length === 0) return null;
 
@@ -76,87 +76,106 @@ class Simulador {
       this.prontos.sort((a, b) => a.chegada - b.chegada);
     } else if (this.algoritmo === "SJF") {
       this.prontos.sort((a, b) => a.execucao - b.execucao);
-    } else if (this.algoritmo === "RR") {
-      // A ordem já é FIFO (pelo push/shift)
-    }
+    } else if (this.algoritmo === "EDF") {
+      // --- NOVO ---
+      // Ordena pelo Deadline Absoluto (menor primeiro)
+      this.prontos.sort((a, b) => {
+        if (a.deadlineAbsoluto === b.deadlineAbsoluto) {
+            return a.chegada - b.chegada; // Desempate por chegada
+        }
+        return a.deadlineAbsoluto - b.deadlineAbsoluto;
+      });
+    } 
+    // Se for RR, não ordena (mantém ordem de chegada/fila)
     
     return this.prontos.shift(); 
   }
 
-  //Função principal que simula a execução dos processos
+  // Função principal que simula a execução dos processos
   tick() {
-    // 1. ATUALIZAR FILA (Novas chegadas)
-    // Isso deve vir primeiro, para que o Gantt possa logar 'ESPERA' corretamente.
     this.atualizarFila();
 
-    // 2. LOGAR NO GANTT
-    // Loga o estado ATUAL (decidido no tick anterior) *antes* de processar
-    // o tick atual. Esta é a correção principal.
+    // --- LOG DO GANTT (Mantido igual) ---
     for (const p of this.processosOriginais) {
       if (p.chegada > this.tempo) {
-        this.gantt[p.id].push(ESTADO_NAO_CHEGOU); // 0
-      
+        this.gantt[p.id].push(ESTADO_NAO_CHEGOU); 
       } else if (this.finalizados.find(x => x.id === p.id)) {
-        this.gantt[p.id].push(ESTADO_TERMINOU); // 3
-      
+        this.gantt[p.id].push(ESTADO_TERMINOU); 
       } else if (this.tempoSobrecargaRestante > 0 && 
                  this.processoEmSobrecarga && 
                  this.processoEmSobrecarga.id === p.id) {
-        // Apenas o processo que está saindo sofre sobrecarga
-        this.gantt[p.id].push(ESTADO_SOBRECARGA); // 4
-
+        this.gantt[p.id].push(ESTADO_SOBRECARGA); 
       } else if (this.emExecucao && this.emExecucao.id === p.id) {
-        this.gantt[p.id].push(ESTADO_EXECUCAO); // 1
-      
+        this.gantt[p.id].push(ESTADO_EXECUCAO); 
       } else {
-        // Se já chegou, não terminou, e não está executando/sobrecarga -> ESPERA
-        this.gantt[p.id].push(ESTADO_ESPERA); // 2
+        this.gantt[p.id].push(ESTADO_ESPERA); 
       }
     }
     
-    // 3. PROCESSAR MÁQUINA DE ESTADOS (Decide o estado para o *próximo* tick)
+    // --- MÁQUINA DE ESTADOS ---
 
     // ESTADO 1: CPU EM SOBRECARGA
     if (this.tempoSobrecargaRestante > 0) {
       this.tempoSobrecargaRestante--;
-
-      if (this.tempoSobrecargaRestante === 0) { // Sobrecarga terminou
+      if (this.tempoSobrecargaRestante === 0) { 
         this.processoEmSobrecarga = null;
         if (this.prontos.length > 0) {
           this.emExecucao = this.escolherProcesso();
-          // O início é 'this.tempo + 1' porque o tick atual (this.tempo)
-          // foi gasto com sobrecarga.
           if (this.emExecucao.inicio === null) this.emExecucao.inicio = this.tempo + 1;
           this.tempoQuantum = 0;
         }
       }
       
-    // ESTADO 2: CPU EXECUTANDO UM PROCESSO
+    // ESTADO 2: CPU EXECUTANDO
     } else if (this.emExecucao) {
       this.emExecucao.restante--;
       this.tempoQuantum++;
+      let processoTerminou = false;
 
-      // Verificação 1: O processo terminou?
+      // A. Processo Terminou
       if (this.emExecucao.restante <= 0) {
-        this.emExecucao.termino = this.tempo + 1; // Termina no *fim* deste tick
+        processoTerminou = true;
+        this.emExecucao.termino = this.tempo + 1; 
         this.emExecucao.turnaround = this.emExecucao.termino - this.emExecucao.chegada;
         this.emExecucao.espera = this.emExecucao.turnaround - this.emExecucao.execucao;
-        this.finalizados.push(this.emExecucao);
+        if(this.algoritmo==="EDF" && this.emExecucao.deadlineAbsoluto < this.tempo +1){
+          this.emExecucao.estorouDeadline= true;
+
+        }
         
-        // --- CORREÇÃO DO "SALTO" ---
-        // Imediatamente pega o próximo processo, se houver.
+        
+        this.finalizados.push(this.emExecucao);
+
+        
         if (this.prontos.length > 0) {
           this.emExecucao = this.escolherProcesso();
-          // O início é 'this.tempo + 1' porque este tick (this.tempo)
-          // foi o último do processo anterior.
           if (this.emExecucao.inicio === null) this.emExecucao.inicio = this.tempo + 1;
           this.tempoQuantum = 0;
         } else {
-          this.emExecucao = null; // CPU fica ociosa
+          this.emExecucao = null;
         }
-      
-      // Verificação 2: O quantum estourou? (Só para RR)
-      } else if (this.algoritmo === "RR" && this.tempoQuantum >= this.quantum) {
+      } 
+
+      // B. Preempção por Deadline (EDF Puro)
+      if (!processoTerminou && this.algoritmo === "EDF" && this.prontos.length > 0) {
+        this.prontos.sort((a, b) => a.deadlineAbsoluto - b.deadlineAbsoluto);
+        let melhorCandidato = this.prontos[0];
+
+        if (melhorCandidato.deadlineAbsoluto < this.emExecucao.deadlineAbsoluto) {
+             this.tempoSobrecargaRestante = this.sobrecarga;
+             this.processoEmSobrecarga = this.emExecucao;
+             this.prontos.push(this.emExecucao); 
+             this.emExecucao = null; 
+             this.tempoQuantum = 0;
+             return; // Sai para evitar verificar quantum abaixo
+        }
+      }
+
+      // C. Preempção por Quantum (RR e agora EDF Híbrido)
+      if (!processoTerminou && this.emExecucao !== null && 
+          (this.algoritmo === "RR" || this.algoritmo === "EDF") && // Alteração aqui
+          this.tempoQuantum >= this.quantum) {
+        
         this.tempoSobrecargaRestante = this.sobrecarga; 
         this.processoEmSobrecarga = this.emExecucao; 
         this.prontos.push(this.emExecucao); 
@@ -164,21 +183,16 @@ class Simulador {
         this.tempoQuantum = 0;
       }
     
-    // ESTADO 3: CPU OCIOSA (e sem sobrecarga vindo)
+    // ESTADO 3: CPU OCIOSA
     } else if (this.prontos.length > 0) {
       this.emExecucao = this.escolherProcesso();
-      // O início é 'this.tempo' porque a CPU *já estava* ociosa
       if (this.emExecucao.inicio === null) this.emExecucao.inicio = this.tempo;
       this.tempoQuantum = 0;
     }
 
-    // 4. AVANÇAR O TEMPO
     this.tempo++;
   }
 
-  // (Mantenha seu tick() como estava)
-
-  // (Não mudou)
   finalizou() {
     return (
       this.processos.length === 0 &&
@@ -188,19 +202,13 @@ class Simulador {
     );
   }
 
-  // --- FUNÇÃO EXECUTAR() MODIFICADA ---
   executar() {
-    
-    // --- CORREÇÃO "PRIME THE PUMP" ---
-    // Lida com processos que chegam no tempo 0 *antes* do primeiro tick.
     this.atualizarFila(); 
     if (this.prontos.length > 0 && this.emExecucao === null && this.tempoSobrecargaRestante === 0) {
       this.emExecucao = this.escolherProcesso();
-      // O início é 'this.tempo' (que é 0)
       if (this.emExecucao.inicio === null) this.emExecucao.inicio = this.tempo; 
       this.tempoQuantum = 0;
     }
-    // ---------------------------------
 
     while (!this.finalizou()) {
       this.tick();
@@ -208,7 +216,6 @@ class Simulador {
     return { gantt: this.gantt, finalizados: this.finalizados };
   }
 }
-
 
 // ----------------------------
 // Exportação global

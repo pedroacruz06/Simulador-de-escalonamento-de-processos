@@ -14,6 +14,7 @@
       <option value="FIFO">FIFO (FCFS)</option>
       <option value="SJF">SJF (Shortest Job First)</option>
       <option value="RR">RR (Round Robin)</option>
+      <option value="EDF">EDF</opption>
     </select>
     <button id="executar">Executar Simulação</button>
   </div>
@@ -22,6 +23,7 @@
     <label>ID:</label> <input id="id" required>
     <label>Chegada:</label> <input id="chegada" type="number" required>
     <label>Tempo de execução:</label> <input id="execucao" type="number" required>
+    <label>Deadline: </label><input id="deadline" type="number">
     <label>Prioridade:</label> <!--<input id="prioridade" type="number" value="1">-->
     <select name="prioridade" id="prioridade">
         <option value=1>1</option>
@@ -35,7 +37,7 @@
 
   <table id="tabelaProcessos">
     <thead>
-      <tr><th>ID</th><th>Chegada</th><th>Execução</th><th>Prioridade</th><th>Ações</th></tr>
+      <tr><th>ID</th><th>Chegada</th><th>Execução</th><th>Deadline</th><th>Prioridade</th><th>Ações</th></tr>
     </thead>
     <tbody></tbody>
   </table>
@@ -60,6 +62,7 @@
           <td>${p.id}</td>
           <td>${p.chegada}</td>
           <td>${p.execucao}</td>
+          <td>${p.deadline}</td>
           <td>${p.prioridade}</td>
           <td><button data-i="${idx}" class="remover">Remover</button></td>
         `;
@@ -81,7 +84,8 @@
       const chegada = parseInt(document.getElementById("chegada").value);
       const execucao = parseInt(document.getElementById("execucao").value);
       const prioridade = parseInt(document.getElementById("prioridade").value);
-      processos.push(new Processo(id, chegada, execucao, prioridade));
+      const deadline = parseInt(document.getElementById("deadline").value);
+      processos.push(new Processo(id, chegada, execucao, prioridade, deadline));
       atualizarTabela();
       form.reset();
     });
