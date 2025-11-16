@@ -278,9 +278,14 @@
       custoDisco
     });
     const resultado = sim.executar();
+    console.table(processos);
+    debugGantt(resultado.gantt);
 
     containerGantt.innerHTML = "";
     animarGantt(resultado.gantt, containerGantt, 200);
+
+    console.log(`\n=== ${algoritmo} ===`);
+    console.table(resultado.finalizados);
   });
 </script>
 

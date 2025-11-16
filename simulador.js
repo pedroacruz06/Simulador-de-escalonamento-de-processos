@@ -314,3 +314,23 @@ window.ESTADO_EXECUCAO = ESTADO_EXECUCAO;
 window.ESTADO_ESPERA = ESTADO_ESPERA;
 window.ESTADO_TERMINOU = ESTADO_TERMINOU;
 window.ESTADO_SOBRECARGA = ESTADO_SOBRECARGA;
+window.debugGantt = function (gantt) {
+  console.log("=== GANTT (Matriz de Estados) ===");
+
+  for (const pid in gantt) {
+    const linha = gantt[pid]
+      .map(est => {
+        switch (est) {
+          case ESTADO_NAO_CHEGOU: return "0";
+          case ESTADO_EXECUCAO:   return "E";
+          case ESTADO_ESPERA:     return "W";
+          case ESTADO_TERMINOU:   return "T";
+          case ESTADO_SOBRECARGA: return "S";
+          default: return "?";
+        }
+      })
+      .join(" ");
+
+    console.log(pid.padEnd(4) + ": " + linha);
+  }
+};
