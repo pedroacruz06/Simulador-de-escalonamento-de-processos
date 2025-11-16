@@ -5,29 +5,27 @@ const ESTADO_NAO_CHEGOU = 0;
 const ESTADO_EXECUCAO = 1;
 const ESTADO_ESPERA = 2;
 const ESTADO_TERMINOU = 3;
-const ESTADO_SOBRECARGA =4;
-
+const ESTADO_SOBRECARGA = 4;
 
 // ----------------------------
 // Classe Processo
 // ----------------------------
 class Processo {
-  constructor(id, chegada, execucao, prioridade = 1, deadline = Infinity, tamanho = 0) {
+  constructor(id, chegada, execucao, prioridade = 1, deadline = Infinity) {
     this.id = id;
     this.chegada = chegada;
     this.execucao = execucao;
     this.restante = execucao;
     this.prioridade = prioridade;
     this.deadline = deadline;
-    this.tamanho = tamanho;
-
+    
     // --- NOVO PARA EDF ---
     // O deadline absoluto é o momento no tempo cronológico que ele deve terminar
     this.deadlineAbsoluto = chegada + deadline;
     this.estorouDeadline = false;
 
     this.vruntime = 0;
-
+    
     this.inicio = null;
     this.termino = null;
     this.espera = 0;
@@ -35,21 +33,17 @@ class Processo {
   }
 }
 
-
-
 // ----------------------------
-// Classe Simulador 
+// Classe Simulador
 // ----------------------------
 class Simulador {
-  constructor(processos, algoritmo = "FIFO", modoMemoria = false, params = {}) {
+  constructor(processos, algoritmo = "FIFO", quantum = 3, sobrecarga = 1) {
     this.tempo = 0;
     this.processosOriginais = processos.slice();
     this.processos = processos.slice();
     this.algoritmo = algoritmo;
-    this.modoMemoria = modoMemoria;
-    this.quantum = params.quantum ?? 2;
-    this.sobrecarga = params.sobrecarga ?? 1;
-    this.custo_disco = params.custoDisco ?? 1;
+    this.quantum = quantum;
+    this.sobrecarga = sobrecarga;
 
     this.prontos = [];
     this.finalizados = [];
@@ -58,8 +52,6 @@ class Simulador {
     this.tempoQuantum = 0;
     this.tempoSobrecargaRestante = 0;
 
-    // --- NOVO ---
-    // Armazena a referência do processo que está sofrendo a preempção
     this.processoEmSobrecarga = null;
 
     // Inicializa o Gantt
@@ -68,7 +60,6 @@ class Simulador {
     }
   }
 
-  // (Não mudou)
   atualizarFila() {
     for (const p of this.processos) {
       if (p.chegada === this.tempo) {
@@ -81,8 +72,8 @@ class Simulador {
     }
     this.processos = this.processos.filter(p => p.chegada > this.tempo);
   }
+  
 
-  // (Não mudou)
   // --- MODIFICADO: Ordenação EDF ---
   escolherProcesso() {
     if (this.prontos.length === 0) return null;
@@ -115,13 +106,11 @@ class Simulador {
     return this.prontos.shift(); 
   }
 
-  //Função principal que simula a execução dos processos
+  // Função principal que simula a execução dos processos
   tick() {
-    // 1. ATUALIZAR FILA (Novas chegadas)
-    // Isso deve vir primeiro, para que o Gantt possa logar 'ESPERA' corretamente.
     this.atualizarFila();
 
-// --- 0.5. DECISÃO IMEDIATA (CORREÇÃO DO DELAY) ---
+    // --- 0.5. DECISÃO IMEDIATA (CORREÇÃO DO DELAY) ---
     // Se a CPU está livre e sem sobrecarga, pega o processo AGORA.
     // Isso garante que o Gantt veja 'EXECUCAO' já neste tick, e não 'ESPERA'.
     if (this.emExecucao === null && 
@@ -156,24 +145,22 @@ class Simulador {
         this.gantt[p.id].push(ESTADO_ESPERA); 
       }
     }
-
-    // 3. PROCESSAR MÁQUINA DE ESTADOS (Decide o estado para o *próximo* tick)
+    
+    // --- MÁQUINA DE ESTADOS ---
 
     // ESTADO 1: CPU EM SOBRECARGA
     if (this.tempoSobrecargaRestante > 0) {
       this.tempoSobrecargaRestante--;
-      if (this.tempoSobrecargaRestante === 0) { // Sobrecarga terminou
+      if (this.tempoSobrecargaRestante === 0) { 
         this.processoEmSobrecarga = null;
         if (this.prontos.length > 0) {
           this.emExecucao = this.escolherProcesso();
-          // O início é 'this.tempo + 1' porque o tick atual (this.tempo)
-          // foi gasto com sobrecarga.
           if (this.emExecucao.inicio === null) this.emExecucao.inicio = this.tempo + 1;
           this.tempoQuantum = 0;
         }
       }
       
-    // ESTADO 2: CPU EXECUTANDO UM PROCESSO
+    // ESTADO 2: CPU EXECUTANDO
     } else if (this.emExecucao) {
       this.emExecucao.restante--;
       this.tempoQuantum++;
@@ -194,6 +181,7 @@ class Simulador {
         this.emExecucao.espera = this.emExecucao.turnaround - this.emExecucao.execucao;
         if(this.algoritmo==="EDF" && this.emExecucao.deadlineAbsoluto < this.tempo +1){
           this.emExecucao.estorouDeadline= true;
+
         }
         
         
@@ -261,10 +249,6 @@ class Simulador {
     this.tempo++;
   }
 
-
-  // (Mantenha seu tick() como estava)
-
-  // (Não mudou)
   finalizou() {
     return (
       this.processos.length === 0 &&
@@ -274,35 +258,13 @@ class Simulador {
     );
   }
 
-  // --- FUNÇÃO EXECUTAR() MODIFICADA ---
   executar() {
-    console.log("Iniciando simulação:");
-    console.log("Algoritmo:", this.algoritmo);
-    console.log("Quantum:", this.quantum);
-    console.log("Sobrecarga de contexto:", this.sobrecarga);
-    console.log("Custo de disco:", this.custo_disco);
-    console.log("Memória virtual:", this.modoMemoria);
-
-    
-    // --- CORREÇÃO "PRIME THE PUMP" ---
-    // Lida com processos que chegam no tempo 0 *antes* do primeiro tick.
-    /*
-    this.atualizarFila(); 
-    if (this.prontos.length > 0 && this.emExecucao === null && this.tempoSobrecargaRestante === 0) {
-      this.emExecucao = this.escolherProcesso();
-      // O início é 'this.tempo' (que é 0)
-      if (this.emExecucao.inicio === null) this.emExecucao.inicio = this.tempo; 
-      this.tempoQuantum = 0;
-    } */
-    // ---------------------------------
-
     while (!this.finalizou()) {
       this.tick();
     }
     return { gantt: this.gantt, finalizados: this.finalizados };
   }
 }
-
 
 // ----------------------------
 // Exportação global
