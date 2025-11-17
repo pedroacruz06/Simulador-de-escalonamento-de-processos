@@ -227,10 +227,10 @@
     // Editando
     if (indiceEditando !== null) {
       const p = processos[indiceEditando];
-      p.chegada = chegada;
+      p.set_chegada(chegada);
       p.execucao = execucao;
       p.prioridade = prioridade;
-      p.deadline = deadline;
+      p.set_deadline(deadline);
       p.tamanho = modoMemoria ? tamanho : undefined;
 
       indiceEditando = null;
@@ -243,7 +243,9 @@
 
     // Criando novo
     const novo = new Processo(id, chegada, execucao);
-    if (algoritmo === "EDF" || algoritmo === "CFS") novo.deadline = deadline;
+    if (algoritmo === "EDF" || algoritmo === "CFS") {
+      novo.set_deadline(deadline);
+    }
     if (algoritmo === "CFS") novo.prioridade = prioridade;
     if (modoMemoria) novo.tamanho = tamanho;
 
@@ -262,7 +264,7 @@
     const processosCopia = processos.map(p => {
       const copia = new Processo(p.id, p.chegada, p.execucao);
       copia.prioridade = p.prioridade;
-      copia.deadline = p.deadline;
+      copia.set_deadline(deadline);
       if (modoMemoria) copia.tamanho = p.tamanho;
       return copia;
     });
@@ -278,7 +280,8 @@
       custoDisco
     });
     const resultado = sim.executar();
-    console.table(processos);
+    //console.table(processos);
+    //console.table(processosCopia);
     debugGantt(resultado.gantt);
 
     containerGantt.innerHTML = "";

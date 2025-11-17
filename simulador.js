@@ -32,6 +32,17 @@ class Processo {
     this.termino = null;
     this.espera = 0;
     this.turnaround = 0;
+
+    console.log("deadline absoluto = ", this.deadline, "tipo: ", typeof this.deadline, " + chegada: ", this.chegada, "tipo: ", typeof this.chegada, " = ", this.deadlineAbsoluto);
+  }
+  set_deadline(deadline) {
+    this.deadline = deadline;
+    this.deadlineAbsoluto = this.chegada + deadline;
+  }
+
+  set_chegada(chegada) {
+    this.chegada = chegada;
+    this.deadlineAbsoluto = chegada + this.deadline;
   }
 }
 
