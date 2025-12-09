@@ -7,7 +7,8 @@ function animarGantt(gantt, container, intervalo = 150) {
     [ESTADO_EXECUCAO]: "#4caf50",   // verde
     [ESTADO_ESPERA]: "#ffeb3b",     // amarelo
     [ESTADO_TERMINOU]: "#64b9ffff",    // azul claro
-    [ESTADO_SOBRECARGA]:"#ab2a2aff"// Vermelho
+    [ESTADO_SOBRECARGA]:"#ab2a2aff",// Vermelho
+    [ESTADO_DISCO]: "#0c0c0cff"
   };
 
   // Cria uma linha (div.row) para cada processo

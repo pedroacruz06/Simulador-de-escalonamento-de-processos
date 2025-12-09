@@ -76,7 +76,7 @@
 
   <div id="gantt"></div>
 
-  <script src="simulador.js"></script>
+  <script src="simulador2.js"></script>
   <script src="gantt.js"></script>
   <script>
   const tabela = document.querySelector("#tabelaProcessos tbody");
@@ -264,7 +264,7 @@
     const processosCopia = processos.map(p => {
       const copia = new Processo(p.id, p.chegada, p.execucao);
       copia.prioridade = p.prioridade;
-      copia.set_deadline(deadline);
+      copia.set_deadline(p.deadline);
       if (modoMemoria) copia.tamanho = p.tamanho;
       return copia;
     });
