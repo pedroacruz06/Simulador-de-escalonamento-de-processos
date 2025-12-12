@@ -67,7 +67,7 @@
       <input id="deadline" type="number" min="0" value="0">
     </span>
     <span id="campo-memoria" class="campo-especial oculto">
-      <label>Tamanho (página):</label>
+      <label>Tamanho (Páginas):</label>
       <input id="tamanho" type="number" min="0" max="10" value="0">
     </span>
 
@@ -82,6 +82,19 @@
   </table>
 
   <div id="gantt"></div>
+  
+
+  <div class="visualizacao-memoria">
+  <div>
+    <h3>Memória Física (RAM)</h3>
+    <div id="ram-animacao" class="ram-grid"></div>
+  </div>
+
+  <div>
+    <h3>Tabelas de Páginas (Por Processo)</h3>
+    <div id="tabelas-paginas-container" class="tabelas-container"></div>
+  </div>
+</div>
 
   <script src="simulador2.js"></script>
   <script src="gantt.js"></script>
@@ -151,7 +164,7 @@
     const modoMemoria = toggleMemoria.checked;
 
     let cab = ["ID", "Chegada", "Execução"];
-    if (modoMemoria) cab.push("Tamanho (página)");
+    if (modoMemoria) cab.push("Tamanho (páginas)");
     if (algoritmo === "EDF" || algoritmo === "CFS") cab.push("Deadline");
     if (algoritmo === "CFS") cab.push("Prioridade");
     cab.push("Ações");
@@ -271,6 +284,9 @@
     const modoMemoria = toggleMemoria.checked;
     const politicaMemoria = campoPolitica.value;
 
+    const containerRam = document.getElementById("ram-animacao")
+    const containerTabelas = document.getElementById("tabelas-paginas-container");
+
     const processosCopia = processos.map(p => {
       const copia = new Processo(p.id, p.chegada, p.execucao);
       copia.prioridade = p.prioridade;
@@ -296,7 +312,7 @@
     debugGantt(resultado.gantt);
 
     containerGantt.innerHTML = "";
-    animarGantt(resultado.gantt, containerGantt, 200);
+    animarGantt(resultado, containerGantt,containerRam,containerTabelas, 200);
 
     console.log(`\n=== ${algoritmo} ===`);
     console.table(resultado.finalizados);

@@ -203,6 +203,8 @@ class Simulador {
     // Usamos uma seed fixa para garantir determinismo nos testes
     this.memoria = new GerenciadorMemoria(params.politicaMemoria || 'FIFO', 12345);
 
+    this.historicoMemoria = [];
+    this.historicoTabelas = [];
     // Filas
     this.prontos = [];
     this.bloqueadosDisco = []; // Fila de processos esperando I/O de disco
@@ -221,6 +223,38 @@ class Simulador {
     }
   }
 
+  // Método auxiliar para criar o snapshot
+  snapshotRam() {
+    if (!this.modoMemoria) return null;
+
+    // Mapeia a RAM atual para um array simples de estados
+    return this.memoria.ram.map(pagina => {
+      if (pagina === null) return null; // Frame livre
+      return {
+        pid: pagina.processId,
+        pageId: pagina.pageId,
+        
+      };
+    });
+  }
+
+  snapshotTabelas() {
+    if (!this.modoMemoria) return {};
+
+    const snapshot = {};
+    // Itera sobre processosOriginais para pegar até os que já terminaram ou não chegaram
+    this.processosOriginais.forEach(proc => {
+      // Mapeia a tabela do processo copiando os valores
+      snapshot[proc.id] = proc.tabelaPaginas.map(pag => ({
+        pageId: pag.pageId,
+        frame: pag.frame, // Pode ser null ou número
+        valid: pag.valid  // true ou false
+      }));
+    });
+    return snapshot;
+  }
+  
+  
   atualizarFila() {
     // Processos chegando agora
     for (const p of this.processos) {
@@ -412,7 +446,14 @@ class Simulador {
             this.verificarPreempcao();
         }
     }
-
+  
+    if (this.modoMemoria) {
+      this.historicoMemoria.push(this.snapshotRam());
+      this.historicoTabelas.push(this.snapshotTabelas()); // <--- SALVA TABELAS
+    } else {
+       this.historicoMemoria.push(null); 
+       this.historicoTabelas.push(null);
+    }
     // 5. Avança o tempo
     this.tempo++;
   }
@@ -432,7 +473,8 @@ class Simulador {
     while (!this.finalizou()) {
       this.tick();
     }
-    return { gantt: this.gantt, finalizados: this.finalizados };
+    return { gantt: this.gantt, finalizados: this.finalizados, 
+              historicoMemoria: this.historicoMemoria,historicoTabelas: this.historicoTabelas };
   }
 }
 

@@ -139,3 +139,159 @@ td, th {
   border-radius: 4px;
   border: 1px solid #ccc;
 }
+.ram-grid {
+  display: grid;
+  /* 5 colunas, 10 linhas = 50 frames */
+  grid-template-columns: repeat(5, 40px); 
+  grid-template-rows: repeat(10, 40px);
+  gap: 4px;
+  margin-top: 10px;
+  background-color: #333; /* Fundo escuro para a "placa" de RAM */
+  padding: 5px;
+  width: fit-content;
+  border-radius: 5px;
+}
+
+.ram-cell {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #555;
+  background-color: #eee; /* Cor de frame livre */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-family: monospace;
+  color: #000;
+  transition: background-color 0.1s; /* Suaviza a troca de cor */
+}
+
+/* Exemplo de classe para destacar uso */
+.ram-cell.ocupado {
+  color: #fff;
+  font-weight: bold;
+}
+/* Container para alinhar RAM e Tabelas lado a lado (opcional) */
+.visualizacao-memoria {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  margin-top: 20px;
+}
+
+/* Container das várias tabelinhas */
+.tabelas-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-width: 800px;
+}
+
+/* A tabela de um único processo */
+.tabela-processo {
+  border: 1px solid #999;
+  background: #fff;
+  padding: 5px;
+  font-size: 11px;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+}
+
+.tabela-processo h4 {
+  margin: 0 0 5px 0;
+  text-align: center;
+  background: #eee;
+  padding: 2px;
+}
+
+.tabela-processo table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.tabela-processo th, .tabela-processo td {
+  border: 1px solid #ccc;
+  padding: 3px 6px;
+  text-align: center;
+}
+
+/* Cores para o bit de validade */
+.bit-valid-1 {
+  background-color: #d4edda;
+  color: #155724;
+  font-weight: bold;
+}
+
+.bit-valid-0 {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+/* --- GANTT --- */
+.linha-processo { display: flex; align-items: center; margin-bottom: 2px; }
+.label-processo { width: 50px; font-weight: bold; }
+.linha-tempo { display: flex; flex-grow: 1; height: 20px; border: 1px solid #ccc; }
+.tick { width: 10px; height: 100%; border-right: 1px solid rgba(255,255,255,0.3); }
+
+/* --- RAM (Grid 50 frames) --- */
+.ram-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr); /* 10 por linha */
+  gap: 3px;
+  background-color: #333;
+  padding: 5px;
+  border-radius: 4px;
+  max-width: 450px; /* Ajuste conforme necessário */
+  margin-bottom: 20px;
+}
+
+.ram-cell {
+  aspect-ratio: 1; /* Quadrado */
+  background-color: #eee;
+  border: 1px solid #555;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-family: monospace;
+  overflow: hidden;
+  transition: background-color 0.2s;
+}
+
+/* --- TABELAS DE PÁGINAS --- */
+.visualizacao-memoria {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+.tabelas-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.tabela-processo {
+    border: 1px solid #999;
+    background: #f9f9f9;
+    padding: 0;
+    font-size: 11px;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+    min-width: 120px;
+}
+.tabela-processo h4 {
+    margin: 0;
+    padding: 4px;
+    background: #333;
+    color: #fff;
+    text-align: center;
+    font-size: 12px;
+}
+.tabela-processo table { width: 100%; border-collapse: collapse; }
+.tabela-processo th, .tabela-processo td {
+    border: 1px solid #ccc;
+    padding: 2px 4px;
+    text-align: center;
+}
+
+/* Cores para Bit de Validade */
+.bit-valid-1 { background-color: #d4edda; color: #155724; font-weight: bold; } /* Verde */
+.bit-valid-0 { background-color: #f8d7da; color: #721c24; } /* Vermelho claro */
