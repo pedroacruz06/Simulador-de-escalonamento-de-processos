@@ -31,7 +31,7 @@ const MAX_PAGINAS_PROCESSO = 10;
 // Classe Processo (Híbrida)
 // ----------------------------
 class Processo {
-  constructor(id, chegada, execucao, prioridade = 1, deadline = Infinity, tamanho = 1) {
+  constructor(id, chegada, execucao, prioridade = 1, deadline = Infinity, tamanho) {
     this.id = id;
     this.chegada = chegada;
     this.execucao = execucao;
@@ -51,14 +51,13 @@ class Processo {
     
     // --- NOVO: DADOS DE MEMÓRIA ---
     // Se o tamanho for 0, forçamos pelo menos 1 página
-    const numPaginas = Math.max(1, Math.min(tamanho, MAX_PAGINAS_PROCESSO));
-    this.numPaginas = numPaginas;
+    this.numPaginas = tamanho;
     this.pageFaults = 0;
     this.paginaPendente = null;
     
     // Tabela de Páginas
     this.tabelaPaginas = [];
-    for (let i = 0; i < numPaginas; i++) {
+    for (let i = 0; i < this.numPaginas; i++) {
       this.tabelaPaginas.push({
         processId: this.id,
         pageId: i,
@@ -81,6 +80,23 @@ class Processo {
     this.chegada = chegada;
     this.deadlineAbsoluto = chegada + this.deadline;
   }
+
+  set_tamanho(tamanho) {
+    this.tamanho = tamanho;
+    this.numPaginas = Math.max(1, Math.min(tamanho, MAX_PAGINAS_PROCESSO));
+    console.log(`Processo ${this.id} tamanho setado para ${tamanho}, numPaginas agora ${this.numPaginas}`);
+    // Recria a tabela de páginas
+    this.tabelaPaginas = [];
+    for (let i = 0; i < this.numPaginas; i++) {
+      this.tabelaPaginas.push({
+        processId: this.id,
+        pageId: i,
+        valid: false,   // true = na RAM
+        frame: null,    // índice do frame na RAM
+        lastUsed: 0     // para LRU
+      });
+    }
+  }
 }
 
 // ----------------------------
@@ -98,19 +114,25 @@ class GerenciadorMemoria {
   }
 
   // Retorna TRUE se acesso OK (Hit), FALSE se Page Fault
- // Retorna TRUE se acesso OK (Hit), FALSE se Page Fault
+  // Retorna TRUE se acesso OK (Hit), FALSE se Page Fault
   acessarPagina(processo) {
     let pageId;
 
     // 1. DECIDIR QUAL PÁGINA ACESSAR
     // Se o processo travou anteriormente, ele TEM que tentar a mesma página.
-    if (processo.paginaPendente !== null) {
+    const vazio = (processo.paginaPendente === null);
+    console.log(`Processo ${processo.id} paginaPendente antes de decidir: ${processo.paginaPendente}. Vazio: ${vazio}`);
+    
+    if (!vazio) {
       pageId = processo.paginaPendente;
       console.log(`Processo ${processo.id} pendendo página ${processo.paginaPendente}`);
       // console.log(`Processo ${processo.id} retentando página ${pageId}`);
-    } else {
+    } 
+    else {
       // Caso contrário, simula uma nova instrução acessando uma página aleatória
-      pageId = Math.floor(this.prng() * processo.numPaginas);
+      const rand = this.prng();
+      pageId = Math.floor(rand * processo.numPaginas);
+      console.log(`Processo ${processo.id} USOU RANDOM ${pageId} rand=${rand}, numPaginas=${processo.numPaginas}`);
     }
 
     const pagina = processo.tabelaPaginas[pageId];
@@ -128,7 +150,7 @@ class GerenciadorMemoria {
       
       // SUCESSO! Limpamos a pendência, pois a instrução foi concluída.
       processo.paginaPendente = null; 
-      console.log(`Processo ${processo.id} acessou página ${pageId} com sucesso. Limpou penencia ${processo.paginaPendente}`);
+      console.log(`Processo ${processo.id} acessou página ${pageId} com sucesso. Paginas pendentes ${processo.paginaPendente}`);
       
       return true; 
     }
@@ -347,7 +369,7 @@ class Simulador {
     // ------------------------------------------------------------
     // 1. GESTÃO DE FILAS E CHEGADAS
     // ------------------------------------------------------------
-    this.atualizarFila();      // Novos processos entram na fila de prontos
+    this.atualizarFila();       // Novos processos entram na fila de prontos
     this.atualizarBloqueados(); // Processos saem do disco e voltam pra prontos
 
     // Tenta alocar CPU se estiver livre
@@ -378,8 +400,10 @@ class Simulador {
 
     if (this.emExecucao && this.modoMemoria && this.tempoSobrecargaRestante === 0) {
         // Tenta acessar a página
-        const sucesso = this.memoria.acessarPagina(this.emExecucao);
+        console.log(`Tick ${this.tempo}: Processo ${this.emExecucao.id} tentou acessar página. Paginas pendentes: ${this.emExecucao.paginaPendente}`);
 
+        const sucesso = this.memoria.acessarPagina(this.emExecucao);
+        
         if (!sucesso) {
             // PAGE FAULT!
             // Removemos da CPU imediatamente, ANTES de desenhar ou gastar tempo

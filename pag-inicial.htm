@@ -253,7 +253,7 @@
       p.execucao = execucao;
       p.prioridade = prioridade;
       p.set_deadline(deadline);
-      p.tamanho = modoMemoria ? tamanho : undefined;
+      if (modoMemoria) p.set_tamanho(tamanho);
 
       indiceEditando = null;
       document.getElementById("id").disabled = false;
@@ -269,9 +269,10 @@
       novo.set_deadline(deadline);
     }
     if (algoritmo === "CFS") novo.prioridade = prioridade;
-    if (modoMemoria) novo.tamanho = tamanho;
+    if (modoMemoria) novo.set_tamanho(tamanho);
 
     processos.push(novo);
+    console.log("Processo adicionado:", novo);
     atualizarTabela();
     form.reset();
   });
@@ -291,7 +292,7 @@
       const copia = new Processo(p.id, p.chegada, p.execucao);
       copia.prioridade = p.prioridade;
       copia.set_deadline(p.deadline);
-      if (modoMemoria) copia.tamanho = p.tamanho;
+      if (modoMemoria) copia.set_tamanho(p.tamanho);
       return copia;
     });
     // Lê os parâmetros globais
