@@ -6,6 +6,7 @@ const ESTADO_EXECUCAO = 1;
 const ESTADO_ESPERA = 2;
 const ESTADO_TERMINOU = 3;
 const ESTADO_SOBRECARGA =4;
+const ESTADO_ESTOURADO =5;
 
 
 // ----------------------------
@@ -162,7 +163,12 @@ class Simulador {
                  this.processoEmSobrecarga.id === p.id) {
         this.gantt[p.id].push(ESTADO_SOBRECARGA); 
       } else if (this.emExecucao && this.emExecucao.id === p.id) {
-        this.gantt[p.id].push(ESTADO_EXECUCAO); 
+          if (this.algoritmo==="EDF" && this.emExecucao.estorouDeadline){
+            this.gantt[p.id].push(ESTADO_ESTOURADO);
+          }
+          else{
+            this.gantt[p.id].push(ESTADO_EXECUCAO);
+          }
       } else {
         this.gantt[p.id].push(ESTADO_ESPERA); 
       }
@@ -325,6 +331,7 @@ window.ESTADO_EXECUCAO = ESTADO_EXECUCAO;
 window.ESTADO_ESPERA = ESTADO_ESPERA;
 window.ESTADO_TERMINOU = ESTADO_TERMINOU;
 window.ESTADO_SOBRECARGA = ESTADO_SOBRECARGA;
+window.ESTADO_ESTOURADO = ESTADO_ESTOURADO;
 window.debugGantt = function (gantt) {
   console.log("=== GANTT (Matriz de Estados) ===");
 

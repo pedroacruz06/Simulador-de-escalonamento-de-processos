@@ -19,6 +19,7 @@ const ESTADO_ESPERA = 2;
 const ESTADO_TERMINOU = 3;
 const ESTADO_SOBRECARGA = 4;
 const ESTADO_DISCO = 5; // Novo estado: Bloqueado por Page Fault
+const ESTADO_ESTOURADO =6;
 
 // ----------------------------
 // Constantes de Memória
@@ -343,6 +344,10 @@ class Simulador {
         }
     }
 
+    if(this.emExecucao && this.algoritmo === "EDF" && this.emExecucao.deadlineAbsoluto < this.tempo + 1) {
+      this.emExecucao.estorouDeadline = true;
+    }
+
     // ------------------------------------------------------------
     // 3. REGISTRO DO GANTT
     // Agora o estado está "limpo":
@@ -359,7 +364,13 @@ class Simulador {
       } else if (this.tempoSobrecargaRestante > 0 && this.processoEmSobrecarga && this.processoEmSobrecarga.id === p.id) {
         this.gantt[p.id].push(ESTADO_SOBRECARGA);
       } else if (this.emExecucao && this.emExecucao.id === p.id) {
-        this.gantt[p.id].push(ESTADO_EXECUCAO); // Vai pintar de Verde
+          if (this.emExecucao.estorouDeadline){
+            this.gantt[p.id].push(ESTADO_ESTOURADO);
+          }
+          else{
+            this.gantt[p.id].push(ESTADO_EXECUCAO);
+          }
+          console.log(`estourou deadline: ${this.emExecucao.estorouDeadline}`);
       } else {
         this.gantt[p.id].push(ESTADO_ESPERA);
       }
@@ -392,10 +403,6 @@ class Simulador {
             this.emExecucao.termino = this.tempo + 1;
             this.emExecucao.turnaround = this.emExecucao.termino - this.emExecucao.chegada;
             this.emExecucao.espera = this.emExecucao.turnaround - this.emExecucao.execucao;
-            
-            if(this.algoritmo === "EDF" && this.emExecucao.deadlineAbsoluto < this.tempo + 1) {
-                this.emExecucao.estorouDeadline = true;
-            }
 
             this.finalizados.push(this.emExecucao);
             this.emExecucao = null; 
@@ -440,6 +447,7 @@ window.ESTADO_ESPERA = ESTADO_ESPERA;
 window.ESTADO_TERMINOU = ESTADO_TERMINOU;
 window.ESTADO_SOBRECARGA = ESTADO_SOBRECARGA;
 window.ESTADO_DISCO = ESTADO_DISCO;
+window.ESTADO_ESTOURADO = ESTADO_ESTOURADO;
 
 window.debugGantt = function (gantt) {
   console.log("=== GANTT VISUAL ===");
@@ -453,6 +461,7 @@ window.debugGantt = function (gantt) {
           case ESTADO_TERMINOU:   return "T";
           case ESTADO_SOBRECARGA: return "S";
           case ESTADO_DISCO:      return "D"; // D para Disco
+          case ESTADO_ESTOURADO:  return "X"; // X para Estourado
           default: return "?";
         }
       })
