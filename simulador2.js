@@ -31,7 +31,7 @@ const MAX_PAGINAS_PROCESSO = 10;
 // Classe Processo (Híbrida)
 // ----------------------------
 class Processo {
-  constructor(id, chegada, execucao, prioridade = 1, deadline = Infinity, tamanho = 4) {
+  constructor(id, chegada, execucao, prioridade = 1, deadline = Infinity, tamanho = 1) {
     this.id = id;
     this.chegada = chegada;
     this.execucao = execucao;
@@ -40,6 +40,7 @@ class Processo {
     this.deadline = deadline;
     this.deadlineAbsoluto = chegada + deadline;
     this.estorouDeadline = false;
+    this.tamanho = tamanho;
     
     // Dados de Escalonamento
     this.vruntime = 0;
@@ -105,6 +106,7 @@ class GerenciadorMemoria {
     // Se o processo travou anteriormente, ele TEM que tentar a mesma página.
     if (processo.paginaPendente !== null) {
       pageId = processo.paginaPendente;
+      console.log(`Processo ${processo.id} pendendo página ${processo.paginaPendente}`);
       // console.log(`Processo ${processo.id} retentando página ${pageId}`);
     } else {
       // Caso contrário, simula uma nova instrução acessando uma página aleatória
@@ -116,6 +118,8 @@ class GerenciadorMemoria {
     // Atualiza relógio global LRU a cada acesso de memória
     if (this.politica === 'LRU') this.lruClock++;
 
+    console.log(`Processo ${processo.id} acessando página ${pageId} (Valid: ${pagina.valid})`);
+
     // --- CASO 1: PAGE HIT (Sucesso) ---
     if (pagina.valid) {
       if (this.politica === 'LRU') {
@@ -124,6 +128,7 @@ class GerenciadorMemoria {
       
       // SUCESSO! Limpamos a pendência, pois a instrução foi concluída.
       processo.paginaPendente = null; 
+      console.log(`Processo ${processo.id} acessou página ${pageId} com sucesso. Limpou penencia ${processo.paginaPendente}`);
       
       return true; 
     }
@@ -355,10 +360,22 @@ class Simulador {
       this.tempoQuantum = 0;
     }
 
+    // Printa snapshot da memória antes do carregamento da pagina
+    if (this.modoMemoria) {
+      this.historicoMemoria.push(this.snapshotRam());
+      this.historicoTabelas.push(this.snapshotTabelas()); // <--- SALVA TABELAS
+    } else {
+       this.historicoMemoria.push(null); 
+       this.historicoTabelas.push(null);
+    }
+
+
     // ------------------------------------------------------------
     // 2. VERIFICAÇÃO DE MEMÓRIA (O "Guardrail")
     // Isso deve acontecer ANTES do Gantt para pegar o Page Fault no tempo 0
     // ------------------------------------------------------------
+    
+
     if (this.emExecucao && this.modoMemoria && this.tempoSobrecargaRestante === 0) {
         // Tenta acessar a página
         const sucesso = this.memoria.acessarPagina(this.emExecucao);
@@ -378,6 +395,7 @@ class Simulador {
         }
     }
 
+    // Verifica estouro de deadline (antes de registrar no Gantt)
     if(this.emExecucao && this.algoritmo === "EDF" && this.emExecucao.deadlineAbsoluto < this.tempo + 1) {
       this.emExecucao.estorouDeadline = true;
     }
@@ -404,7 +422,6 @@ class Simulador {
           else{
             this.gantt[p.id].push(ESTADO_EXECUCAO);
           }
-          console.log(`estourou deadline: ${this.emExecucao.estorouDeadline}`);
       } else {
         this.gantt[p.id].push(ESTADO_ESPERA);
       }
@@ -446,14 +463,7 @@ class Simulador {
             this.verificarPreempcao();
         }
     }
-  
-    if (this.modoMemoria) {
-      this.historicoMemoria.push(this.snapshotRam());
-      this.historicoTabelas.push(this.snapshotTabelas()); // <--- SALVA TABELAS
-    } else {
-       this.historicoMemoria.push(null); 
-       this.historicoTabelas.push(null);
-    }
+    
     // 5. Avança o tempo
     this.tempo++;
   }

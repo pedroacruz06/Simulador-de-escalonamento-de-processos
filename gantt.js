@@ -30,12 +30,12 @@ function animarGantt(resultado, containerGantt, containerRam, containerTabelas, 
   
   // Mapeamento de Estados para Cores
   const coresGantt = {
-    [ESTADO_NAO_CHEGOU]: "#e0e0e0", // Cinza claro
+    [ESTADO_NAO_CHEGOU]: "#e0e0e0ff", // Cinza claro
     [ESTADO_EXECUCAO]:   "#4caf50", // Verde
     [ESTADO_ESPERA]:     "#ffeb3b", // Amarelo
-    [ESTADO_TERMINOU]:   "#64b9ff", // Azul
+    [ESTADO_TERMINOU]:   "#e0e0e0ff", // Cinza claro
     [ESTADO_SOBRECARGA]: "#ab2a2a", // Vermelho escuro
-    [ESTADO_DISCO]:      "#add8e6", // Azul claro (Page Fault)
+    [ESTADO_DISCO]:      "#35aeffff", // Azul claro (Page Fault)
     // Fallback
     "default": "#fff"
   };
