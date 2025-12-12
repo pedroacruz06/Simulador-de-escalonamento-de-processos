@@ -1,7 +1,7 @@
 <html>
-    <head>
-        <script src="./gantt.js" type="module" defer></script>
-        <script src="./simulador2.js" type="module" defer></script>
+    <head>  
+        <script  type="module" src="./simulador2.js" defer></script>
+        <script  type="module" src="./gantt.js"  defer></script>
         <script src="./script5.js" type="module" defer></script>
         <link rel="stylesheet" href="./css1.css">
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,12 +34,12 @@
 
         <div id="memoria">
             <div id="memoria-cab">
-                <span style="color:white; padding-left: 0.9rem;">MEMORIA</span >
+                <span style="color:white; padding-left: 0.9rem; text-shadow: -2px 1px 0 #574B67;">MEMORIA</span >
                 <img src="./imgs/x-button.png" style="height: 1.2rem; image-rendering: pixelated; width: 1.68rem;">
             </div>
             <div id="conteudo-mem">
                 <div id="slots">
-                    <img src="./imgs/cell_wait.png">
+                    <img class="jump" src="./imgs/cell_wait.png">
                     <img src="./imgs/cell_wait.png">
                     <img src="./imgs/cell_wait.png">
                     <img src="./imgs/cell_wait.png">
@@ -109,6 +109,8 @@
             </div>
             
         </div>
+
+        
         <script>
             const wrapper = document.querySelector('#lista_processos');
             const content = wrapper.querySelector('#processes');
@@ -200,71 +202,82 @@
                 atualizarData();
         </script>
         <script>
-        const procsDiv = document.getElementById("procs");
+const procsDiv = document.getElementById("procs");
 const tabPagsDiv = document.getElementById("tab_pags");
 
-// Exemplo de dados: cada processo tem um objeto com frame e valid
-const processos = {
-    1: { frame: 5, valid: 1 },
-    2: { frame: 2, valid: 0 },
-    3: { frame: 7, valid: 1 }
-};
-
-function criarTabela(procId, dados) {
+// Cria apenas a estrutura da tabela, com valores vazios
+function criarTabelaDoProcesso(proc) {
     const table = document.createElement("table");
 
-    // Cabeçalho fixo: ID | Frame | Valid
+    // Cabeçalho
     const thead = document.createElement("thead");
     const trHead = document.createElement("tr");
-
-    ["id", "frame", "valid"].forEach(text => {
+    ["pageId", "frame", "valid"].forEach(text => {
         const th = document.createElement("th");
         th.textContent = text;
         trHead.appendChild(th);
     });
-
     thead.appendChild(trHead);
     table.appendChild(thead);
 
-    // Corpo da tabela
+    // Corpo (somente pageId, frame e valid vazios)
     const tbody = document.createElement("tbody");
-    const trBody = document.createElement("tr");
 
-    const tdId = document.createElement("td");
-    tdId.textContent = procId;
-    trBody.appendChild(tdId);
+    // Usa o array proc.tabelaVazia que você criou no pré-tratamento
+    (proc.tabelaPaginas || []).forEach(pagina => {
+        const tr = document.createElement("tr");
 
-    const tdFrame = document.createElement("td");
-    tdFrame.textContent = dados.frame;
-    trBody.appendChild(tdFrame);
+        const tdPageId = document.createElement("td");
+        tdPageId.textContent = pagina.pageId;
+        tr.appendChild(tdPageId);
 
-    const tdValid = document.createElement("td");
-    tdValid.textContent = dados.valid;
-    trBody.appendChild(tdValid);
+        const tdFrame = document.createElement("td");
+        tdFrame.textContent = "-";     // SEM preenchimento
+        tr.appendChild(tdFrame);
 
-    tbody.appendChild(trBody);
+        const tdValid = document.createElement("td");
+        tdValid.textContent = "-";     // SEM preenchimento
+        tr.appendChild(tdValid);
+
+        tbody.appendChild(tr);
+    });
+
     table.appendChild(tbody);
-
     return table;
 }
 
-// Mostra tabela ao clicar no processo
+// Mostra a tabela base do processo
 function mostrarTabela(procId) {
-    tabPagsDiv.innerHTML = ""; 
-    const tabela = criarTabela(procId, processos[procId]);
-    tabPagsDiv.appendChild(tabela);
+    const procs = window.processosSim;
+    if (!procs) return;
+
+    const proc = procs.find(p => String(p.id) === String(procId));
+    if (!proc) return;
+
+    tabPagsDiv.innerHTML = "";
+    tabPagsDiv.appendChild(criarTabelaDoProcesso(proc));
 }
 
-// Adiciona evento de clique
-procsDiv.querySelectorAll(".proc").forEach(procEl => {
-    procEl.addEventListener("click", () => {
-        mostrarTabela(procEl.dataset.id);
+// Liga o clique nos blocos de processos
+function attachProcClicks() {
+    procsDiv.querySelectorAll(".proc").forEach(procEl => {
+        procEl.addEventListener("click", () => mostrarTabela(procEl.dataset.id));
     });
-});
+}
 
-// Mostrar primeira tabela por padrão
-mostrarTabela(1);
+// Tenta conectar imediatamente
+attachProcClicks();
 
+// Mostra automaticamente o primeiro processo (vazio)
+const tryMostrarPrimeiro = () => {
+    const procs = window.processosSim;
+    if (procs && procs.length) {
+        mostrarTabela(procs[0].id);
+    } else {
+        setTimeout(tryMostrarPrimeiro, 100);
+    }
+};
+tryMostrarPrimeiro();
         </script>
         <script>
             const imgs = document.querySelectorAll('#slots img');
@@ -274,5 +287,7 @@ mostrarTabela(1);
                 img.style.animationDelay = `${delay}s`;
             }); 
         </script>
+        
+        
     </body>
 </html>

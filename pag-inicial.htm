@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <title>Simulador de Escalonamento</title>
   <link rel="stylesheet" href="style.css">
+  <script type="module" src="simulador2.js"></script>
+  <script type="module" src="script5.js"></script>
+  <script type="module" src="gantt.js"></script>
 </head>
 <body>
   <h1>Simulador de Escalonamento</h1>
@@ -40,6 +43,13 @@
       <label for="custo-disco">Custo de Disco (u.t.):</label>
       <input type="number" id="custo-disco" min="0" value="1">
     </div>
+    <div class="campo-parametro">
+      <label for="politica">Política de Gerenciamento de Memória:</label>
+      <select id="politica">
+        <option value="FIFO">FIFO</option>
+        <option value="LRU">LRU</option>
+      </select>
+    </div>
   </div>
 
   
@@ -60,7 +70,7 @@
       <input id="deadline" type="number" min="0" value="0">
     </span>
     <span id="campo-memoria" class="campo-especial oculto">
-      <label>Tamanho (página):</label>
+      <label>Tamanho (Páginas):</label>
       <input id="tamanho" type="number" min="0" max="10" value="0">
     </span>
 
@@ -86,6 +96,7 @@
   const campoQuantum = document.getElementById("quantum");
   const campoSobrecarga = document.getElementById("sobrecarga");
   const campoCustoDisco = document.getElementById("custo-disco");
+  const campoPolitica = document.getElementById("politica");
   const toggleMemoria = document.getElementById("toggle-memoria");
   const campoDeadline = document.getElementById("campo-deadline");
   const campoMemoria = document.getElementById("campo-memoria");
@@ -125,6 +136,7 @@
     campoQuantum.parentElement.style.display = preemptivo ? "flex" : "none";
     campoSobrecarga.parentElement.style.display = preemptivo ? "flex" : "none";
     campoCustoDisco.parentElement.style.display = modoMemoriaAtivo ? "flex" : "none";
+    campoPolitica.parentElement.style.display = modoMemoriaAtivo ? "flex" : "none";
 
     // Caixa completa
     const boxParametros = document.querySelector(".parametros");
@@ -142,7 +154,7 @@
     const modoMemoria = toggleMemoria.checked;
 
     let cab = ["ID", "Chegada", "Execução"];
-    if (modoMemoria) cab.push("Tamanho (página)");
+    if (modoMemoria) cab.push("Tamanho (páginas)");
     if (algoritmo === "EDF" || algoritmo === "CFS") cab.push("Deadline");
     if (algoritmo === "CFS") cab.push("Prioridade");
     cab.push("Ações");
@@ -231,7 +243,7 @@
       p.execucao = execucao;
       p.prioridade = prioridade;
       p.set_deadline(deadline);
-      p.tamanho = modoMemoria ? tamanho : undefined;
+      if (modoMemoria) p.set_tamanho(tamanho);
 
       indiceEditando = null;
       document.getElementById("id").disabled = false;
@@ -242,14 +254,15 @@
     }
 
     // Criando novo
-    const novo = new Processo(id, chegada, execucao);
+    const novo = new window.Processo(id, chegada, execucao);
     if (algoritmo === "EDF" || algoritmo === "CFS") {
       novo.set_deadline(deadline);
     }
     if (algoritmo === "CFS") novo.prioridade = prioridade;
-    if (modoMemoria) novo.tamanho = tamanho;
+    if (modoMemoria) novo.set_tamanho(tamanho);
 
     processos.push(novo);
+    console.log("Processo adicionado:", novo);
     atualizarTabela();
     form.reset();
   });
@@ -260,12 +273,16 @@
 
     const algoritmo = seletorAlg.value;
     const modoMemoria = toggleMemoria.checked;
+    const politicaMemoria = campoPolitica.value;
+
+    const containerRam = document.getElementById("ram-animacao")
+    const containerTabelas = document.getElementById("tabelas-paginas-container");
 
     const processosCopia = processos.map(p => {
       const copia = new Processo(p.id, p.chegada, p.execucao);
       copia.prioridade = p.prioridade;
       copia.set_deadline(p.deadline);
-      if (modoMemoria) copia.tamanho = p.tamanho;
+      if (modoMemoria) copia.set_tamanho(p.tamanho);
       return copia;
     });
     // Lê os parâmetros globais
@@ -277,10 +294,10 @@
     const sim = new Simulador(processosCopia, algoritmo, modoMemoria, {
       quantum,
       sobrecarga,
-      custoDisco
+      custoDisco,
+      politicaMemoria
     });
 
-     // 🔹 SALVAR DADOS PARA A OUTRA PÁGINA
     localStorage.setItem("simuladorData", JSON.stringify({
         processos: processosCopia,
         algoritmo,
@@ -301,7 +318,7 @@
     debugGantt(resultado.gantt);
 
     containerGantt.innerHTML = "";
-    animarGantt(resultado.gantt, containerGantt, 200);
+    animarGantt(resultado, containerGantt,containerRam,containerTabelas, 200);
 
     console.log(`\n=== ${algoritmo} ===`);
     console.table(resultado.finalizados);

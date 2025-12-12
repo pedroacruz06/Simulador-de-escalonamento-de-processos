@@ -25,9 +25,12 @@ import {executarGantt} from './gantt.js';
                     pr.set_deadline(p.deadline);
                     pr.tamanho = p.tamanho;
 
+                    console.log(pr.tabelaPaginas);
                     console.log(`✔️ [DEBUG] Processo recriado [${idx}]`, pr);
                     return pr;
                 });
+                window.processosSim = processos;
+                
 
                 // -----------------------------
                 // RECRIAR PARÂMETROS
@@ -52,12 +55,12 @@ import {executarGantt} from './gantt.js';
                 // INICIAR SIMULAÇÃO
                 // -----------------------------
                 const sim1 = sim.executar();
-                executarGantt(sim1.gantt);
+                executarGantt(sim1.gantt, sim1.historicoMemoria, sim1.historicoTabelas);
                 // Caso queira imprimir no console:
                 console.log("Simulação carregada com sucesso!", sim1.gantt, sim1.finalizados);
-                
+                console.log("Outra simulação carregada com sucesso!", sim1.historicoMemoria, sim1.historicoTabelas);
+                const tempoTotal = Math.max(...Object.values(sim1.gantt).map(arr => arr.length));
 
-                // Se você tiver funções para desenhar timeline, logs etc., chame-as aqui:
-                // renderizarResultados(sim);
-                // atualizarTabela(sim);
+                console.log(tempoTotal, sim1.historicoMemoria);
+          
             });

@@ -19,6 +19,7 @@ const ESTADO_ESPERA = 2;
 const ESTADO_TERMINOU = 3;
 const ESTADO_SOBRECARGA = 4;
 const ESTADO_DISCO = 5; // Novo estado: Bloqueado por Page Fault
+const ESTADO_ESTOURADO =6;
 
 // ----------------------------
 // Constantes de Memória
@@ -30,7 +31,7 @@ const MAX_PAGINAS_PROCESSO = 10;
 // Classe Processo (Híbrida)
 // ----------------------------
 export class Processo {
-  constructor(id, chegada, execucao, prioridade = 1, deadline = Infinity, tamanho = 4) {
+  constructor(id, chegada, execucao, prioridade = 1, deadline = Infinity, tamanho) {
     this.id = id;
     this.chegada = chegada;
     this.execucao = execucao;
@@ -39,6 +40,7 @@ export class Processo {
     this.deadline = deadline;
     this.deadlineAbsoluto = chegada + deadline;
     this.estorouDeadline = false;
+    this.tamanho = tamanho;
     
     // Dados de Escalonamento
     this.vruntime = 0;
@@ -49,14 +51,13 @@ export class Processo {
     
     // --- NOVO: DADOS DE MEMÓRIA ---
     // Se o tamanho for 0, forçamos pelo menos 1 página
-    const numPaginas = Math.max(1, Math.min(tamanho, MAX_PAGINAS_PROCESSO));
-    this.numPaginas = numPaginas;
+    this.numPaginas = tamanho;
     this.pageFaults = 0;
     this.paginaPendente = null;
     
     // Tabela de Páginas
     this.tabelaPaginas = [];
-    for (let i = 0; i < numPaginas; i++) {
+    for (let i = 0; i < this.numPaginas; i++) {
       this.tabelaPaginas.push({
         processId: this.id,
         pageId: i,
@@ -79,6 +80,23 @@ export class Processo {
     this.chegada = chegada;
     this.deadlineAbsoluto = chegada + this.deadline;
   }
+
+  set_tamanho(tamanho) {
+    this.tamanho = tamanho;
+    this.numPaginas = Math.max(1, Math.min(tamanho, MAX_PAGINAS_PROCESSO));
+    console.log(`Processo ${this.id} tamanho setado para ${tamanho}, numPaginas agora ${this.numPaginas}`);
+    // Recria a tabela de páginas
+    this.tabelaPaginas = [];
+    for (let i = 0; i < this.numPaginas; i++) {
+      this.tabelaPaginas.push({
+        processId: this.id,
+        pageId: i,
+        valid: false,   // true = na RAM
+        frame: null,    // índice do frame na RAM
+        lastUsed: 0     // para LRU
+      });
+    }
+  }
 }
 
 // ----------------------------
@@ -96,24 +114,32 @@ class GerenciadorMemoria {
   }
 
   // Retorna TRUE se acesso OK (Hit), FALSE se Page Fault
- // Retorna TRUE se acesso OK (Hit), FALSE se Page Fault
+  // Retorna TRUE se acesso OK (Hit), FALSE se Page Fault
   acessarPagina(processo) {
     let pageId;
 
     // 1. DECIDIR QUAL PÁGINA ACESSAR
     // Se o processo travou anteriormente, ele TEM que tentar a mesma página.
-    if (processo.paginaPendente !== null) {
+    const vazio = (processo.paginaPendente === null);
+    console.log(`Processo ${processo.id} paginaPendente antes de decidir: ${processo.paginaPendente}. Vazio: ${vazio}`);
+    
+    if (!vazio) {
       pageId = processo.paginaPendente;
+      console.log(`Processo ${processo.id} pendendo página ${processo.paginaPendente}`);
       // console.log(`Processo ${processo.id} retentando página ${pageId}`);
-    } else {
+    } 
+    else {
       // Caso contrário, simula uma nova instrução acessando uma página aleatória
-      pageId = Math.floor(this.prng() * processo.numPaginas);
+      const rand = this.prng();
+      pageId = Math.floor(rand * processo.numPaginas);
+      console.log(`Processo ${processo.id} USOU RANDOM ${pageId} rand=${rand}, numPaginas=${processo.numPaginas}`);
     }
 
     const pagina = processo.tabelaPaginas[pageId];
 
     // Atualiza relógio global LRU a cada acesso de memória
     if (this.politica === 'LRU') this.lruClock++;
+
 
     // --- CASO 1: PAGE HIT (Sucesso) ---
     if (pagina.valid) {
@@ -123,6 +149,7 @@ class GerenciadorMemoria {
       
       // SUCESSO! Limpamos a pendência, pois a instrução foi concluída.
       processo.paginaPendente = null; 
+      console.log(`Processo ${processo.id} acessou página ${pageId} com sucesso. Paginas pendentes ${processo.paginaPendente}`);
       
       return true; 
     }
@@ -202,6 +229,8 @@ class Simulador {
     // Usamos uma seed fixa para garantir determinismo nos testes
     this.memoria = new GerenciadorMemoria(params.politicaMemoria || 'FIFO', 12345);
 
+    this.historicoMemoria = [];
+    this.historicoTabelas = [];
     // Filas
     this.prontos = [];
     this.bloqueadosDisco = []; // Fila de processos esperando I/O de disco
@@ -220,6 +249,38 @@ class Simulador {
     }
   }
 
+  // Método auxiliar para criar o snapshot
+  snapshotRam() {
+    if (!this.modoMemoria) return null;
+
+    // Mapeia a RAM atual para um array simples de estados
+    return this.memoria.ram.map(pagina => {
+      if (pagina === null) return null; // Frame livre
+      return {
+        pid: pagina.processId,
+        pageId: pagina.pageId,
+        
+      };
+    });
+  }
+
+  snapshotTabelas() {
+    if (!this.modoMemoria) return {};
+
+    const snapshot = {};
+    // Itera sobre processosOriginais para pegar até os que já terminaram ou não chegaram
+    this.processosOriginais.forEach(proc => {
+      // Mapeia a tabela do processo copiando os valores
+      snapshot[proc.id] = proc.tabelaPaginas.map(pag => ({
+        pageId: pag.pageId,
+        frame: pag.frame, // Pode ser null ou número
+        valid: pag.valid  // true ou false
+      }));
+    });
+    return snapshot;
+  }
+  
+  
   atualizarFila() {
     // Processos chegando agora
     for (const p of this.processos) {
@@ -307,10 +368,10 @@ class Simulador {
     // ------------------------------------------------------------
     // 1. GESTÃO DE FILAS E CHEGADAS
     // ------------------------------------------------------------
-    this.atualizarFila();      // Novos processos entram na fila de prontos
+    this.atualizarFila();       // Novos processos entram na fila de prontos
     this.atualizarBloqueados(); // Processos saem do disco e voltam pra prontos
 
-    // Tenta alocar CPU se estiver livre (IDLE)
+    // Tenta alocar CPU se estiver livre
     if (this.emExecucao === null && 
         this.tempoSobrecargaRestante === 0 && 
         this.prontos.length > 0) {
@@ -320,14 +381,28 @@ class Simulador {
       this.tempoQuantum = 0;
     }
 
+    // Printa snapshot da memória antes do carregamento da pagina
+    if (this.modoMemoria) {
+      this.historicoMemoria.push(this.snapshotRam());
+      this.historicoTabelas.push(this.snapshotTabelas()); // <--- SALVA TABELAS
+    } else {
+       this.historicoMemoria.push(null); 
+       this.historicoTabelas.push(null);
+    }
+
+
     // ------------------------------------------------------------
     // 2. VERIFICAÇÃO DE MEMÓRIA (O "Guardrail")
     // Isso deve acontecer ANTES do Gantt para pegar o Page Fault no tempo 0
     // ------------------------------------------------------------
+    
+
     if (this.emExecucao && this.modoMemoria && this.tempoSobrecargaRestante === 0) {
         // Tenta acessar a página
-        const sucesso = this.memoria.acessarPagina(this.emExecucao);
+        console.log(`Tick ${this.tempo}: Processo ${this.emExecucao.id} tentou acessar página. Paginas pendentes: ${this.emExecucao.paginaPendente}`);
 
+        const sucesso = this.memoria.acessarPagina(this.emExecucao);
+        
         if (!sucesso) {
             // PAGE FAULT!
             // Removemos da CPU imediatamente, ANTES de desenhar ou gastar tempo
@@ -341,6 +416,11 @@ class Simulador {
             // Nota: Não geramos sobrecarga aqui para simplificar a visualização:
             // O bloqueio é imediato.
         }
+    }
+
+    // Verifica estouro de deadline (antes de registrar no Gantt)
+    if(this.emExecucao && this.algoritmo === "EDF" && this.emExecucao.deadlineAbsoluto < this.tempo + 1) {
+      this.emExecucao.estorouDeadline = true;
     }
 
     // ------------------------------------------------------------
@@ -359,7 +439,12 @@ class Simulador {
       } else if (this.tempoSobrecargaRestante > 0 && this.processoEmSobrecarga && this.processoEmSobrecarga.id === p.id) {
         this.gantt[p.id].push(ESTADO_SOBRECARGA);
       } else if (this.emExecucao && this.emExecucao.id === p.id) {
-        this.gantt[p.id].push(ESTADO_EXECUCAO); // Vai pintar de Verde
+          if (this.emExecucao.estorouDeadline){
+            this.gantt[p.id].push(ESTADO_ESTOURADO);
+          }
+          else{
+            this.gantt[p.id].push(ESTADO_EXECUCAO);
+          }
       } else {
         this.gantt[p.id].push(ESTADO_ESPERA);
       }
@@ -392,10 +477,6 @@ class Simulador {
             this.emExecucao.termino = this.tempo + 1;
             this.emExecucao.turnaround = this.emExecucao.termino - this.emExecucao.chegada;
             this.emExecucao.espera = this.emExecucao.turnaround - this.emExecucao.execucao;
-            
-            if(this.algoritmo === "EDF" && this.emExecucao.deadlineAbsoluto < this.tempo + 1) {
-                this.emExecucao.estorouDeadline = true;
-            }
 
             this.finalizados.push(this.emExecucao);
             this.emExecucao = null; 
@@ -405,7 +486,7 @@ class Simulador {
             this.verificarPreempcao();
         }
     }
-
+    
     // 5. Avança o tempo
     this.tempo++;
   }
@@ -425,7 +506,8 @@ class Simulador {
     while (!this.finalizou()) {
       this.tick();
     }
-    return { gantt: this.gantt, finalizados: this.finalizados };
+    return { gantt: this.gantt, finalizados: this.finalizados, 
+              historicoMemoria: this.historicoMemoria,historicoTabelas: this.historicoTabelas };
   }
 }
 
@@ -440,6 +522,7 @@ window.ESTADO_ESPERA = ESTADO_ESPERA;
 window.ESTADO_TERMINOU = ESTADO_TERMINOU;
 window.ESTADO_SOBRECARGA = ESTADO_SOBRECARGA;
 window.ESTADO_DISCO = ESTADO_DISCO;
+window.ESTADO_ESTOURADO = ESTADO_ESTOURADO;
 
 window.debugGantt = function (gantt) {
   console.log("=== GANTT VISUAL ===");
@@ -453,6 +536,7 @@ window.debugGantt = function (gantt) {
           case ESTADO_TERMINOU:   return "T";
           case ESTADO_SOBRECARGA: return "S";
           case ESTADO_DISCO:      return "D"; // D para Disco
+          case ESTADO_ESTOURADO:  return "X"; // X para Estourado
           default: return "?";
         }
       })
