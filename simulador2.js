@@ -203,6 +203,7 @@ class Simulador {
     // Usamos uma seed fixa para garantir determinismo nos testes
     this.memoria = new GerenciadorMemoria(params.politicaMemoria || 'FIFO', 12345);
 
+    this.historicoMemoria = [];
     // Filas
     this.prontos = [];
     this.bloqueadosDisco = []; // Fila de processos esperando I/O de disco
@@ -221,6 +222,23 @@ class Simulador {
     }
   }
 
+  // Método auxiliar para criar o snapshot
+  snapshotRam() {
+    if (!this.modoMemoria) return null;
+
+    // Mapeia a RAM atual para um array simples de estados
+    return this.memoria.ram.map(pagina => {
+      if (pagina === null) return null; // Frame livre
+      return {
+        pid: pagina.processId,
+        pageId: pagina.pageId,
+        // Podemos adicionar cor aqui se quiser lógica complexa, 
+        // ou resolver a cor na hora de desenhar baseado no PID
+      };
+    });
+  }
+  
+  
   atualizarFila() {
     // Processos chegando agora
     for (const p of this.processos) {
@@ -412,7 +430,13 @@ class Simulador {
             this.verificarPreempcao();
         }
     }
-
+  
+    if (this.modoMemoria) {
+      this.historicoMemoria.push(this.snapshotRam());
+    } else {
+       
+       this.historicoMemoria.push(null); 
+    }  
     // 5. Avança o tempo
     this.tempo++;
   }
@@ -432,7 +456,8 @@ class Simulador {
     while (!this.finalizou()) {
       this.tick();
     }
-    return { gantt: this.gantt, finalizados: this.finalizados };
+    return { gantt: this.gantt, finalizados: this.finalizados, 
+              historicoMemoria: this.historicoMemoria };
   }
 }
 
