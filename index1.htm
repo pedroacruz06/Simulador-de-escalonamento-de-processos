@@ -1,0 +1,189 @@
+<html>
+    <head>
+        <script src="./gantt.js" type="module" defer></script>
+        <script src="./simulador2.js" type="module" defer></script>
+        <script src="./script5.js" type="module" defer></script>
+        <link rel="stylesheet" href="./css1.css">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    </head>
+
+    <body>
+        <header>
+            <span id="date"></span>
+        </header>
+
+        <div id="escalonador">
+            <div id="cabecalho-esc">
+                <span style="color:white; padding-left: 0.9rem;">ESCALONADOR</span >
+                <img src="./imgs/x-button.png" style="height: 1.2rem; image-rendering: pixelated; width: 1.68rem;">
+            </div>
+
+            <div id="lista_processos">
+                <div id="processes">
+                </div>
+                <div class="scroll-track"></div>
+                <div class="scroll-thumb"></div>
+            </div>
+
+            <div id="rodape-esc">
+
+            </div>
+        </div>
+
+        <div id="memoria">
+            <div id="memoria-cab">
+                <span style="color:white; padding-left: 0.9rem;">MEMORIA</span >
+                <img src="./imgs/x-button.png" style="height: 1.2rem; image-rendering: pixelated; width: 1.68rem;">
+            </div>
+            <div id="conteudo-mem">
+                <div id="slots">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                    <img src="./imgs/cell_wait.png">
+                </div>
+                <div id="tabela_pag"></div>
+                
+            </div>
+            
+        </div>
+        <script>
+            const wrapper = document.querySelector('#lista_processos');
+            const content = wrapper.querySelector('#processes');
+            const thumb = wrapper.querySelector('.scroll-thumb');
+            const track = wrapper.querySelector('.scroll-track');
+
+            // tamanho fixo do thumb
+            const thumbHeight = 46;
+            thumb.style.height = `${thumbHeight}px`;
+            track.style.width = `30px`;
+            function updateThumb() {
+            const contentHeight = content.scrollHeight;
+            const wrapperHeight = wrapper.clientHeight;
+            
+
+            // mostra ou esconde o thumb conforme necessário
+            if (contentHeight <= wrapperHeight) {
+                thumb.style.display = 'none';
+                return;
+            } else {
+                thumb.style.display = 'block';
+            }
+
+            const maxThumbTop = wrapperHeight - thumbHeight;
+            const maxScroll = contentHeight - wrapperHeight;
+            const ratio = content.scrollTop / maxScroll;
+
+            thumb.style.top = `${ratio * maxThumbTop}px`;
+            }
+
+            // sincroniza o thumb
+            content.addEventListener('scroll', updateThumb);
+            window.addEventListener('resize', updateThumb);
+            updateThumb();
+
+            // --- lógica de arraste ---
+            let dragging = false;
+            let startY = 0;
+            let startThumbTop = 0;
+
+            thumb.addEventListener('mousedown', e => {
+            dragging = true;
+            startY = e.clientY;
+            startThumbTop = parseFloat(thumb.style.top) || 0;
+            document.body.style.userSelect = 'none'; // evita seleção de texto
+            e.preventDefault();
+            });
+
+            document.addEventListener('mouseup', () => {
+            dragging = false;
+            document.body.style.userSelect = '';
+            });
+
+            document.addEventListener('mousemove', e => {
+            if (!dragging) return;
+
+            const wrapperHeight = wrapper.clientHeight;
+            const contentHeight = content.scrollHeight;
+            const maxThumbTop = wrapperHeight - thumbHeight;
+            const maxScroll = contentHeight - wrapperHeight;
+
+            let newTop = startThumbTop + (e.clientY - startY);
+            newTop = Math.max(0, Math.min(newTop, maxThumbTop));
+            thumb.style.top = `${newTop}px`;
+
+            const ratio = newTop / maxThumbTop;
+            content.scrollTop = ratio * maxScroll;
+            });
+        </script>
+        <script>
+            function atualizarData() {
+                const now = new Date();
+    
+                const weekdays = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
+                const weekday = weekdays[now.getDay()];
+
+                const hours = String(now.getHours()).padStart(2, "0");
+                const minutes = String(now.getMinutes()).padStart(2, "0");
+                const time = `${hours}:${minutes}`;
+
+                const year = now.getFullYear();
+
+                const formatted = `${weekday} ${time} ${year}`;
+
+                document.getElementById("date").textContent = formatted;
+                }
+
+                setInterval(atualizarData, 60000);
+                atualizarData();
+        </script>
+    </body>
+</html>

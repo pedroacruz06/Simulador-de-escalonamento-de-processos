@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulador de Escalonamento</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Simulador de Escalonamento</h1>
+
+  <div class="controls">
+  <label for="algoritmo">Algoritmo:</label>
+  <select id="algoritmo">
+    <option value="FIFO">FIFO (First In First Out)</option>
+    <option value="SJF">SJF (Shortest Job First)</option>
+    <option value="RR">Round-Robin</option>
+    <option value="EDF">EDF (Earliest Deadline First)</option>
+    <option value="CFS">CFS-Sim - Completely Fair Scheduler</option>
+  </select>
+
+  <label class="toggle-memoria">
+    <input type="checkbox" id="toggle-memoria">
+    Ativar modo de Memória Virtual
+  </label>
+
+  <div class="parametros">
+    <h3>Parâmetros de Simulação</h3>
+
+    <div class="campo-parametro">
+      <label for="quantum">Quantum (u.t.):</label>
+      <input type="number" id="quantum" min="1" value="2">
+    </div>
+
+    <div class="campo-parametro">
+      <label for="sobrecarga">Sobrecarga de Contexto (u.t.):</label>
+      <input type="number" id="sobrecarga" min="0" value="1">
+    </div>
+
+    <div class="campo-parametro">
+      <label for="custo-disco">Custo de Disco (u.t.):</label>
+      <input type="number" id="custo-disco" min="0" value="1">
+    </div>
+  </div>
+
+  
+
+  <button id="executar">Executar Simulação</button>
+</div>
+
+  <form id="formProcesso">
+    <label>ID:</label> <input id="id" type="text" maxlength="6" required>
+    <label>Chegada:</label> <input id="chegada" type="number" min="0" required>
+    <label>Tempo de execução:</label> <input id="execucao" type="number" min="0" required>
+    <span id="campo-prioridade" class="campo-especial oculto">
+      <label>Prioridade (maior prioridade = 1):</label> 
+      <input id="prioridade" type="number" min="1" value="1">
+    </span>
+    <span id="campo-deadline" class="campo-especial oculto">
+      <label>Deadline:</label>
+      <input id="deadline" type="number" min="0" value="0">
+    </span>
+    <span id="campo-memoria" class="campo-especial oculto">
+      <label>Tamanho (página):</label>
+      <input id="tamanho" type="number" min="0" max="10" value="0">
+    </span>
+
+    <button type="submit">Adicionar Processo</button>
+  </form>
+
+  <table id="tabelaProcessos">
+    <thead>
+      <tr><th>ID</th><th>Chegada</th><th>Execução</th><th>Ações</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div id="gantt"></div>
+
+  <script src="simulador2.js" type="module" defer></script>
+  <script src="gantt.js" type="module" defer></script>
+  <script>
+  const tabela = document.querySelector("#tabelaProcessos tbody");
+  const cabecalho = document.querySelector("#tabelaProcessos thead tr");
+  const form = document.getElementById("formProcesso");
+  const seletorAlg = document.getElementById("algoritmo");
+  const campoQuantum = document.getElementById("quantum");
+  const campoSobrecarga = document.getElementById("sobrecarga");
+  const campoCustoDisco = document.getElementById("custo-disco");
+  const toggleMemoria = document.getElementById("toggle-memoria");
+  const campoDeadline = document.getElementById("campo-deadline");
+  const campoMemoria = document.getElementById("campo-memoria");
+  const campoPrioridade = document.getElementById("campo-prioridade");
+  const containerGantt = document.getElementById("gantt");
+
+  let processos = [];
+  let indiceEditando = null;
+
+  // Atualiza visibilidade dos campos conforme algoritmo e modo de memória
+  function atualizarCampos() {
+    const algoritmo = seletorAlg.value;
+    const modoMemoria = toggleMemoria.checked;
+
+    // Esconde todos os campos especiais
+    campoDeadline.classList.add("oculto");
+    campoMemoria.classList.add("oculto");
+    campoPrioridade.classList.add("oculto");
+
+    // Mostra campos conforme algoritmo
+    if (algoritmo === "EDF") campoDeadline.classList.remove("oculto");
+    if (algoritmo === "CFS") {
+      campoDeadline.classList.remove("oculto");
+      campoPrioridade.classList.remove("oculto");
+    }
+
+    // Memória é adicional
+    if (modoMemoria) campoMemoria.classList.remove("oculto");
+
+    atualizarTabela();
+
+     // Controle de parâmetros
+    const preemptivo = (algoritmo === "RR" || algoritmo === "EDF" || algoritmo === "CFS");
+    const modoMemoriaAtivo = modoMemoria;
+
+    // Campos individuais
+    campoQuantum.parentElement.style.display = preemptivo ? "flex" : "none";
+    campoSobrecarga.parentElement.style.display = preemptivo ? "flex" : "none";
+    campoCustoDisco.parentElement.style.display = modoMemoriaAtivo ? "flex" : "none";
+
+    // Caixa completa
+    const boxParametros = document.querySelector(".parametros");
+    const algumParametroVisivel = preemptivo || modoMemoriaAtivo;
+
+    boxParametros.style.display = algumParametroVisivel ? "block" : "none";
+  }
+
+  seletorAlg.addEventListener("change", atualizarCampos);
+  toggleMemoria.addEventListener("change", atualizarCampos);
+
+  // Atualiza a tabela conforme algoritmo e modo de memória
+  function atualizarTabela() {
+    const algoritmo = seletorAlg.value;
+    const modoMemoria = toggleMemoria.checked;
+
+    let cab = ["ID", "Chegada", "Execução"];
+    if (modoMemoria) cab.push("Tamanho (página)");
+    if (algoritmo === "EDF" || algoritmo === "CFS") cab.push("Deadline");
+    if (algoritmo === "CFS") cab.push("Prioridade");
+    cab.push("Ações");
+
+    cabecalho.innerHTML = cab.map(c => `<th>${c}</th>`).join("");
+    tabela.innerHTML = "";
+
+    processos.forEach((p, idx) => {
+      let linha = `
+        <td>${p.id}</td>
+        <td>${p.chegada}</td>
+        <td>${p.execucao ?? "-"}</td>
+      `;
+
+      if (modoMemoria) linha += `<td>${p.tamanho ?? "-"}</td>`;
+      if (algoritmo === "EDF" || algoritmo === "CFS")
+        linha += `<td>${p.deadline ?? "-"}</td>`;
+      if (algoritmo === "CFS")
+        linha += `<td>${p.prioridade ?? "-"}</td>`;
+
+      linha += `
+        <td>
+          <button data-i="${idx}" class="editar">Editar</button>
+          <button data-i="${idx}" class="remover">Remover</button>
+        </td>
+      `;
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = linha;
+      tabela.appendChild(tr);
+    });
+
+    // Botões de ação
+    document.querySelectorAll(".remover").forEach(btn => {
+      btn.addEventListener("click", e => {
+        const i = e.target.dataset.i;
+        processos.splice(i, 1);
+        atualizarTabela();
+      });
+    });
+
+    document.querySelectorAll(".editar").forEach(btn => {
+      btn.addEventListener("click", e => editarProcesso(e.target.dataset.i));
+    });
+  }
+
+  // Edição de processo
+  function editarProcesso(i) {
+    const p = processos[i];
+    indiceEditando = i;
+
+    document.getElementById("id").value = p.id;
+    document.getElementById("chegada").value = p.chegada;
+    document.getElementById("execucao").value = p.execucao ?? "";
+    document.getElementById("prioridade").value = p.prioridade ?? "";
+    document.getElementById("deadline").value = p.deadline ?? "";
+    document.getElementById("tamanho").value = p.tamanho ?? "";
+
+    document.getElementById("id").disabled = true;
+    form.querySelector("button[type='submit']").textContent = "Salvar Alterações";
+  }
+
+  // Adicionar ou editar processo
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+
+    const algoritmo = seletorAlg.value;
+    const modoMemoria = toggleMemoria.checked;
+
+    const id = document.getElementById("id").value.trim().toUpperCase();
+    const chegada = parseInt(document.getElementById("chegada").value);
+    const execucao = parseInt(document.getElementById("execucao").value);
+    const prioridade = parseInt(document.getElementById("prioridade").value);
+    const deadline = parseInt(document.getElementById("deadline").value);
+    const tamanho = parseInt(document.getElementById("tamanho").value);
+
+    if (!id) return alert("O ID não pode estar vazio.");
+    if (indiceEditando === null && processos.some(p => p.id === id))
+      return alert(`Já existe um processo com o identificador "${id}".`);
+    if (isNaN(execucao)) return alert("Informe o tempo de execução.");
+
+    // Editando
+    if (indiceEditando !== null) {
+      const p = processos[indiceEditando];
+      p.set_chegada(chegada);
+      p.execucao = execucao;
+      p.prioridade = prioridade;
+      p.set_deadline(deadline);
+      p.tamanho = modoMemoria ? tamanho : undefined;
+
+      indiceEditando = null;
+      document.getElementById("id").disabled = false;
+      form.querySelector("button[type='submit']").textContent = "Adicionar Processo";
+      atualizarTabela();
+      form.reset();
+      return;
+    }
+
+    // Criando novo
+    const novo = new Processo(id, chegada, execucao);
+    if (algoritmo === "EDF" || algoritmo === "CFS") {
+      novo.set_deadline(deadline);
+    }
+    if (algoritmo === "CFS") novo.prioridade = prioridade;
+    if (modoMemoria) novo.tamanho = tamanho;
+
+    processos.push(novo);
+    atualizarTabela();
+    form.reset();
+  });
+
+  // Executar simulação
+  document.getElementById("executar").addEventListener("click", () => {
+    if (processos.length === 0) return alert("Adicione pelo menos um processo.");
+
+    const algoritmo = seletorAlg.value;
+    const modoMemoria = toggleMemoria.checked;
+
+    const processosCopia = processos.map(p => {
+      const copia = new Processo(p.id, p.chegada, p.execucao);
+      copia.prioridade = p.prioridade;
+      copia.set_deadline(p.deadline);
+      if (modoMemoria) copia.tamanho = p.tamanho;
+      return copia;
+    });
+    // Lê os parâmetros globais
+    const quantum = parseInt(campoQuantum.value) || 2;
+    const sobrecarga = parseInt(campoSobrecarga.value) || 1;
+    const custoDisco = parseInt(campoCustoDisco.value) || 1;
+
+    // Cria simulador com parâmetros
+    const sim = new Simulador(processosCopia, algoritmo, modoMemoria, {
+      quantum,
+      sobrecarga,
+      custoDisco
+    });
+
+     // 🔹 SALVAR DADOS PARA A OUTRA PÁGINA
+    localStorage.setItem("simuladorData", JSON.stringify({
+        processos: processosCopia,
+        algoritmo,
+        modoMemoria,
+        parametros: {
+            quantum,
+            sobrecarga,
+            custoDisco
+        }
+    }));
+
+    // 🔹 IR PARA A PÁGINA DE SIMULAÇÃO
+    window.location.href = "./index1.htm";
+
+    const resultado = sim.executar();
+    //console.table(processos);
+    //console.table(processosCopia);
+    debugGantt(resultado.gantt);
+
+    containerGantt.innerHTML = "";
+    animarGantt(resultado.gantt, containerGantt, 200);
+
+    console.log(`\n=== ${algoritmo} ===`);
+    console.table(resultado.finalizados);
+  });
+</script>
+
+
+</body>
+</html>
