@@ -204,6 +204,7 @@ class Simulador {
     this.memoria = new GerenciadorMemoria(params.politicaMemoria || 'FIFO', 12345);
 
     this.historicoMemoria = [];
+    this.historicoTabelas = [];
     // Filas
     this.prontos = [];
     this.bloqueadosDisco = []; // Fila de processos esperando I/O de disco
@@ -232,10 +233,25 @@ class Simulador {
       return {
         pid: pagina.processId,
         pageId: pagina.pageId,
-        // Podemos adicionar cor aqui se quiser lógica complexa, 
-        // ou resolver a cor na hora de desenhar baseado no PID
+        
       };
     });
+  }
+
+  snapshotTabelas() {
+    if (!this.modoMemoria) return {};
+
+    const snapshot = {};
+    // Itera sobre processosOriginais para pegar até os que já terminaram ou não chegaram
+    this.processosOriginais.forEach(proc => {
+      // Mapeia a tabela do processo copiando os valores
+      snapshot[proc.id] = proc.tabelaPaginas.map(pag => ({
+        pageId: pag.pageId,
+        frame: pag.frame, // Pode ser null ou número
+        valid: pag.valid  // true ou false
+      }));
+    });
+    return snapshot;
   }
   
   
@@ -433,10 +449,11 @@ class Simulador {
   
     if (this.modoMemoria) {
       this.historicoMemoria.push(this.snapshotRam());
+      this.historicoTabelas.push(this.snapshotTabelas()); // <--- SALVA TABELAS
     } else {
-       
        this.historicoMemoria.push(null); 
-    }  
+       this.historicoTabelas.push(null);
+    }
     // 5. Avança o tempo
     this.tempo++;
   }
@@ -457,7 +474,7 @@ class Simulador {
       this.tick();
     }
     return { gantt: this.gantt, finalizados: this.finalizados, 
-              historicoMemoria: this.historicoMemoria };
+              historicoMemoria: this.historicoMemoria,historicoTabelas: this.historicoTabelas };
   }
 }
 
