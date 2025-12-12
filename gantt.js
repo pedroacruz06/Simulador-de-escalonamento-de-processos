@@ -57,10 +57,11 @@ export async function executarGantt (gantt) {
                 img.src = "../imgs/cell_over.png";
                 div.appendChild(img);
             } else if (gantt[key][i] == 4) {
-                img.src = "../imgs/cell_disco.png";
+                img.src = "../imgs/cell_terminate.png";
                 div.appendChild(img);
             } else if (gantt[key][i] == 5) {
-                img.src = "../imgs/cell_terminate.png";
+                img.src = "../imgs/cell_disco.png";
+                
                 div.appendChild(img);
             }
         });

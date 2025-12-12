@@ -90,7 +90,21 @@
                     <img src="./imgs/cell_wait.png">
                     <img src="./imgs/cell_wait.png">
                 </div>
-                <div id="tabela_pag"></div>
+                <div id="tabela_pag">
+                    <div id="tab_header">
+                        <span>TABELA DE PAGINAS</span>
+                    </div>
+                    <div id="tabela">
+                        <div id="procs">
+                            <div class="proc" data-id="1">P1</div>
+                            <div class="proc" data-id="2">P2</div>
+                            <div class="proc" data-id="3">P3</div>
+                        </div>
+                        <div id="tab_pags">
+                            
+                        </div>
+                    </div>
+                </div>
                 
             </div>
             
@@ -184,6 +198,81 @@
 
                 setInterval(atualizarData, 60000);
                 atualizarData();
+        </script>
+        <script>
+        const procsDiv = document.getElementById("procs");
+const tabPagsDiv = document.getElementById("tab_pags");
+
+// Exemplo de dados: cada processo tem um objeto com frame e valid
+const processos = {
+    1: { frame: 5, valid: 1 },
+    2: { frame: 2, valid: 0 },
+    3: { frame: 7, valid: 1 }
+};
+
+function criarTabela(procId, dados) {
+    const table = document.createElement("table");
+
+    // Cabeçalho fixo: ID | Frame | Valid
+    const thead = document.createElement("thead");
+    const trHead = document.createElement("tr");
+
+    ["id", "frame", "valid"].forEach(text => {
+        const th = document.createElement("th");
+        th.textContent = text;
+        trHead.appendChild(th);
+    });
+
+    thead.appendChild(trHead);
+    table.appendChild(thead);
+
+    // Corpo da tabela
+    const tbody = document.createElement("tbody");
+    const trBody = document.createElement("tr");
+
+    const tdId = document.createElement("td");
+    tdId.textContent = procId;
+    trBody.appendChild(tdId);
+
+    const tdFrame = document.createElement("td");
+    tdFrame.textContent = dados.frame;
+    trBody.appendChild(tdFrame);
+
+    const tdValid = document.createElement("td");
+    tdValid.textContent = dados.valid;
+    trBody.appendChild(tdValid);
+
+    tbody.appendChild(trBody);
+    table.appendChild(tbody);
+
+    return table;
+}
+
+// Mostra tabela ao clicar no processo
+function mostrarTabela(procId) {
+    tabPagsDiv.innerHTML = ""; 
+    const tabela = criarTabela(procId, processos[procId]);
+    tabPagsDiv.appendChild(tabela);
+}
+
+// Adiciona evento de clique
+procsDiv.querySelectorAll(".proc").forEach(procEl => {
+    procEl.addEventListener("click", () => {
+        mostrarTabela(procEl.dataset.id);
+    });
+});
+
+// Mostrar primeira tabela por padrão
+mostrarTabela(1);
+
+        </script>
+        <script>
+            const imgs = document.querySelectorAll('#slots img');
+
+            imgs.forEach((img, index) => {
+                const delay = index * 0.1; // atraso em segundos
+                img.style.animationDelay = `${delay}s`;
+            }); 
         </script>
     </body>
 </html>
