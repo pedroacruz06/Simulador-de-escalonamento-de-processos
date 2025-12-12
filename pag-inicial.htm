@@ -40,6 +40,13 @@
       <label for="custo-disco">Custo de Disco (u.t.):</label>
       <input type="number" id="custo-disco" min="0" value="1">
     </div>
+    <div class="campo-parametro">
+      <label for="politica">Política de Gerenciamento de Memória:</label>
+      <select id="politica">
+        <option value="FIFO">FIFO</option>
+        <option value="LRU">LRU</option>
+      </select>
+    </div>
   </div>
 
   
@@ -86,6 +93,7 @@
   const campoQuantum = document.getElementById("quantum");
   const campoSobrecarga = document.getElementById("sobrecarga");
   const campoCustoDisco = document.getElementById("custo-disco");
+  const campoPolitica = document.getElementById("politica");
   const toggleMemoria = document.getElementById("toggle-memoria");
   const campoDeadline = document.getElementById("campo-deadline");
   const campoMemoria = document.getElementById("campo-memoria");
@@ -125,6 +133,7 @@
     campoQuantum.parentElement.style.display = preemptivo ? "flex" : "none";
     campoSobrecarga.parentElement.style.display = preemptivo ? "flex" : "none";
     campoCustoDisco.parentElement.style.display = modoMemoriaAtivo ? "flex" : "none";
+    campoPolitica.parentElement.style.display = modoMemoriaAtivo ? "flex" : "none";
 
     // Caixa completa
     const boxParametros = document.querySelector(".parametros");
@@ -260,6 +269,7 @@
 
     const algoritmo = seletorAlg.value;
     const modoMemoria = toggleMemoria.checked;
+    const politica = campoPolitica.value;
 
     const processosCopia = processos.map(p => {
       const copia = new Processo(p.id, p.chegada, p.execucao);
@@ -277,7 +287,8 @@
     const sim = new Simulador(processosCopia, algoritmo, modoMemoria, {
       quantum,
       sobrecarga,
-      custoDisco
+      custoDisco,
+      politica
     });
     const resultado = sim.executar();
     //console.table(processos);
