@@ -269,7 +269,7 @@
 
     const algoritmo = seletorAlg.value;
     const modoMemoria = toggleMemoria.checked;
-    const politica = campoPolitica.value;
+    const politicaMemoria = campoPolitica.value;
 
     const processosCopia = processos.map(p => {
       const copia = new Processo(p.id, p.chegada, p.execucao);
@@ -288,7 +288,7 @@
       quantum,
       sobrecarga,
       custoDisco,
-      politica
+      politicaMemoria
     });
     const resultado = sim.executar();
     //console.table(processos);
